@@ -13,6 +13,19 @@
 	<version>5.0.0.0</version>
 	
 	<dependencies>
+		<!-- ARROWHEAD AITIA -->
+		<dependency>
+			<groupId>ai.aitia</groupId>
+			<artifactId>arrowhead-application-lib-common</artifactId>
+			<version>5.0.0.0</version>
+		</dependency>
+		<dependency>
+			<groupId>ai.aitia</groupId>
+			<artifactId>arrowhead-application-lib-core-mandatory</artifactId>
+			<version>5.0.0.0</version>
+		</dependency>
+	
+		<!-- SPRING BOOT -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter</artifactId>
