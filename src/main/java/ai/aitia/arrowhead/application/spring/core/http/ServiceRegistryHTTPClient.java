@@ -2,27 +2,36 @@ package ai.aitia.arrowhead.application.spring.core.http;
 
 import org.springframework.stereotype.Component;
 
-import ai.aitia.arrowhead.application.common.networking.HttpsCommunicator;
-import ai.aitia.arrowhead.application.common.networking.properties.HttpMethod;
+import ai.aitia.arrowhead.application.common.networking.profile.InterfaceProfile;
 import ai.aitia.arrowhead.application.common.service.MonitoringService;
 import ai.aitia.arrowhead.application.core.mandatory.serviceregistry.ServiceRegistryClient;
 import ai.aitia.arrowhead.application.core.mandatory.serviceregistry.service.ServiceDiscoveryService;
+import ai.aitia.arrowhead.application.spring.core.CoreClientBean;
+import ai.aitia.arrowhead.application.spring.networking.HttpsCommunicator;
 
 @Component
-public class ServiceRegistryHTTPClient {
+public class ServiceRegistryHTTPClient implements CoreClientBean {
 
 	//=================================================================================================
 	// members
 	
 	private ServiceRegistryClient client;
+	private boolean initialized = false;
 	
 	//=================================================================================================
 	// methods
 	
 	//-------------------------------------------------------------------------------------------------
-	public void init(final String address, final int port, final String queryPath, final HttpMethod queryMethod) {
-		this.client = new ServiceRegistryClient(new HttpsCommunicator(), address, port, queryPath, queryMethod);
+	public void initialize(final InterfaceProfile queryInterfaceProfile) {
+		this.client = new ServiceRegistryClient(new HttpsCommunicator(), queryInterfaceProfile);
 		this.client.initialize();
+		this.initialized = true;
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	@Override
+	public boolean isInitialized() {
+		return this.initialized;
 	}
 	
 	//-------------------------------------------------------------------------------------------------

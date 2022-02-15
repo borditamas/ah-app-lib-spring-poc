@@ -3,17 +3,19 @@ package ai.aitia.arrowhead.application.spring.core.http;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import ai.aitia.arrowhead.application.common.networking.HttpsCommunicator;
 import ai.aitia.arrowhead.application.common.service.MonitoringService;
 import ai.aitia.arrowhead.application.core.mandatory.systemregistry.SystemRegistryClient;
+import ai.aitia.arrowhead.application.spring.core.CoreClientBean;
+import ai.aitia.arrowhead.application.spring.networking.HttpsCommunicator;
 
 @Component
-public class SystemRegistryHTTPClient {
+public class SystemRegistryHTTPClient implements CoreClientBean {
 
 	//=================================================================================================
 	// members
 	
 	private SystemRegistryClient client;
+	private boolean initialized = false;
 	
 	@Autowired
 	private ServiceRegistryHTTPClient serviceRegistry;
@@ -22,8 +24,16 @@ public class SystemRegistryHTTPClient {
 	// methods
 	
 	//-------------------------------------------------------------------------------------------------
-	public void init() {
+	public void initialize() {
 		this.client = new SystemRegistryClient(new HttpsCommunicator(), serviceRegistry.getClient());
+		client.initialize();
+		this.initialized = true;
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	@Override
+	public boolean isInitialized() {
+		return this.initialized;
 	}
 	
 	//=================================================================================================
