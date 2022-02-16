@@ -4,13 +4,13 @@ import ai.aitia.arrowhead.application.common.exception.CommunicationException;
 import ai.aitia.arrowhead.application.common.exception.DeveloperException;
 import ai.aitia.arrowhead.application.common.networking.Communicator;
 import ai.aitia.arrowhead.application.common.networking.CommunicatorType;
-import ai.aitia.arrowhead.application.common.networking.SSLProperties;
+import ai.aitia.arrowhead.application.common.networking.CommunicationProperties;
 import ai.aitia.arrowhead.application.common.networking.profile.InterfaceProfile;
 import ai.aitia.arrowhead.application.common.verification.Ensure;
 
 public class WebsocketCommunicator implements Communicator {
 
-	private SSLProperties sslProps;
+	private CommunicationProperties props;
 	private boolean initialized = false;
 
 	//=================================================================================================
@@ -24,16 +24,15 @@ public class WebsocketCommunicator implements Communicator {
 	
 	//-------------------------------------------------------------------------------------------------
 	@Override
-	public void loadSSLProperties(final SSLProperties sslProps) {
-		Ensure.notNull(sslProps, "SSLProperties is null");
-		sslProps.verify();
-		// TODO Auto-generated method stub		
+	public void loadSSLProperties(final CommunicationProperties props) {
+		Ensure.notNull(props, "CommunicationProperties is null");
+		this.props = props;	
 	}
 	
 	//-------------------------------------------------------------------------------------------------
 	@Override
 	public void initialize() {
-		Ensure.notNull(this.sslProps, "SSLProperties is null");
+		Ensure.notNull(this.props, "CommunicationProperties is null");
 		// TODO Auto-generated method stub
 		this.initialized = true;
 		
