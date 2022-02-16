@@ -24,7 +24,6 @@ import javax.net.ssl.SSLContext;
 import javax.security.auth.x500.X500Principal;
 
 import org.apache.http.HttpHeaders;
-import org.apache.http.HttpStatus;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.protocol.HttpClientContext;
@@ -35,7 +34,9 @@ import org.apache.http.protocol.HttpContext;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -55,9 +56,8 @@ import ai.aitia.arrowhead.application.common.networking.profile.Protocol;
 import ai.aitia.arrowhead.application.common.networking.profile.http.HttpsKey;
 import ai.aitia.arrowhead.application.common.networking.profile.http.model.QueryParams;
 import ai.aitia.arrowhead.application.common.verification.Ensure;
+import ai.aitia.arrowhead.application.spring.networking.exception.HttpResponseException;
 import ai.aitia.arrowhead.application.spring.util.CertificateUtils;
-import eu.arrowhead.common.exception.AuthException;
-import eu.arrowhead.common.exception.UnavailableServerException;
 
 public class HttpsCommunicator implements Communicator {
 	
@@ -120,10 +120,14 @@ public class HttpsCommunicator implements Communicator {
 	@Override
 	public <T,P> T send(final InterfaceProfile interfaceProfile, final Class<T> responseType, final P payload) throws CommunicationException {
 		try {
-			return sendRequest(interfaceProfile, responseType, payload);			
+			final ResponseEntity<T> responseEntity = sendRequest(interfaceProfile, responseType, payload);
+			return responseEntity.getBody();
 				
 		} catch (final DeveloperException ex) {
 			throw ex;
+			
+		} catch (final HttpResponseException ex) {
+			throw new CommunicationException(ex.getMessage(), ex);
 				
 		} catch (final Exception ex) {
 			// log
@@ -135,7 +139,7 @@ public class HttpsCommunicator implements Communicator {
 	// assistant methods
 	
 	//-------------------------------------------------------------------------------------------------
-	private <T,P> T sendRequest(final InterfaceProfile interfaceProfile, final Class<T> responseType, final P payload) {
+	private <T,P> ResponseEntity<T> sendRequest(final InterfaceProfile interfaceProfile, final Class<T> responseType, final P payload) throws HttpResponseException {
 		Ensure.notNull(interfaceProfile, "interfaceProfile is null");
 		Ensure.isTrue(interfaceProfile.getProtocol() == Protocol.HTTP, "Invalid protocol for HttpsCommunicator: " + interfaceProfile.getProtocol().name());
 		Ensure.notEmpty(interfaceProfile.getAddress(), "address is empty");
@@ -157,14 +161,14 @@ public class HttpsCommunicator implements Communicator {
 		} catch (final ResourceAccessException ex) {
 			if (ex.getMessage().contains(ERROR_MESSAGE_PART_PKIX_PATH)) {
 //				logger.error("The system at {} is not part of the same certificate chain of trust!", uri.toUriString());
-//		        throw new AuthException("The system at " + uri.toUriString() + " is not part of the same certificate chain of trust!", HttpStatus.SC_UNAUTHORIZED, ex);
+				throw new HttpResponseException(HttpStatus.UNAUTHORIZED, "The system at " + uri.toUriString() + " is not part of the same certificate chain of trust!");
 			} else if (ex.getMessage().contains(ERROR_MESSAGE_PART_SUBJECT_ALTERNATIVE_NAMES)) {
 //				logger.error("The certificate of the system at {} does not contain the specified IP address or DNS name as a Subject Alternative Name.", uri.toString());
-//				throw new AuthException("The certificate of the system at " + uri.toString() + " does not contain the specified IP address or DNS name as a Subject Alternative Name."); 
+				throw new HttpResponseException(HttpStatus.UNAUTHORIZED, "The certificate of the system at " + uri.toString() + " does not contain the specified IP address or DNS name as a Subject Alternative Name.");
 			} else {
 //		        logger.error("UnavailableServerException occurred at {}", uri.toUriString());
 //		        logger.debug("Exception", ex);
-//		        throw new UnavailableServerException("Could not get any response from: " + uri.toUriString(), HttpStatus.SC_SERVICE_UNAVAILABLE, ex);
+				throw new HttpResponseException(HttpStatus.SERVICE_UNAVAILABLE, "Could not get any response from: " + uri.toUriString(), ex);
 			}
 		}
 	}
