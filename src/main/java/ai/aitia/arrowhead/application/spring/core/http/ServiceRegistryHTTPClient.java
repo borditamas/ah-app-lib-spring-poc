@@ -2,6 +2,8 @@ package ai.aitia.arrowhead.application.spring.core.http;
 
 import org.springframework.stereotype.Component;
 
+import ai.aitia.arrowhead.application.common.networking.CommunicationClient;
+import ai.aitia.arrowhead.application.common.networking.Communicator;
 import ai.aitia.arrowhead.application.common.networking.profile.InterfaceProfile;
 import ai.aitia.arrowhead.application.common.service.MonitoringService;
 import ai.aitia.arrowhead.application.core.mandatory.serviceregistry.ServiceRegistryClient;

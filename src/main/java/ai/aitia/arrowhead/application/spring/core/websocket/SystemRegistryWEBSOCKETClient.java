@@ -7,7 +7,6 @@ import ai.aitia.arrowhead.application.common.service.MonitoringService;
 import ai.aitia.arrowhead.application.core.mandatory.systemregistry.SystemRegistryClient;
 import ai.aitia.arrowhead.application.spring.core.CoreClientBean;
 import ai.aitia.arrowhead.application.spring.core.http.ServiceRegistryHTTPClient;
-import ai.aitia.arrowhead.application.spring.networking.WebsocketCommunicator;
 
 @Component
 public class SystemRegistryWEBSOCKETClient implements CoreClientBean { // JUST AN EXAMPLE -> Datamanager Core Sys has websocket
@@ -26,9 +25,9 @@ public class SystemRegistryWEBSOCKETClient implements CoreClientBean { // JUST A
 	
 	//-------------------------------------------------------------------------------------------------
 	public void initialize() {
-		this.client = new SystemRegistryClient(new WebsocketCommunicator(), serviceRegistry.getClient());
-		client.initialize();
-		this.initialized = true;
+//		this.client = new SystemRegistryClient(new WebsocketCommunicator(), serviceRegistry.getClient());
+//		client.initialize();
+//		this.initialized = true;
 	}
 	
 	//-------------------------------------------------------------------------------------------------
