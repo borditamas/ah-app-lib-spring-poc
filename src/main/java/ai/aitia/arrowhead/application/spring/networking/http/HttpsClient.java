@@ -1,4 +1,4 @@
-package ai.aitia.arrowhead.application.spring.networking;
+package ai.aitia.arrowhead.application.spring.networking.http;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -54,9 +54,10 @@ public class HttpsClient implements CommunicationClient {
 	private final int connectionTimeout;
 	private final int socketTimeout;
 	private final int connectionManagerTimeout;
+	private final InterfaceProfile interfaceProfile;
 		
-	private RestTemplate sslTemplate;
-	private boolean initialized = false;
+	private final RestTemplate sslTemplate;	
+	private ResponseEntity<Object> response = null;
 	
 	private static final String ERROR_MESSAGE_PART_PKIX_PATH = "PKIX path";
 	private static final String ERROR_MESSAGE_PART_SUBJECT_ALTERNATIVE_NAMES = "doesn't match any of the subject alternative names";	
@@ -68,36 +69,39 @@ public class HttpsClient implements CommunicationClient {
 	//-------------------------------------------------------------------------------------------------
 	
 	public HttpsClient(final String clientName, final CommunicationProperties props, final SSLContext sslContext, final int connectionTimeout,
-					   final int socketTimeout, final int connectionManagerTimeout) {
+					   final int socketTimeout, final int connectionManagerTimeout, final InterfaceProfile interfaceProfile) {
 		this.clientName = clientName;
 		this.props = props;
 		this.sslContext = sslContext;
 		this.connectionTimeout = connectionTimeout;
 		this.socketTimeout = socketTimeout;
 		this.connectionManagerTimeout = connectionManagerTimeout;
-	}
-	
-	//-------------------------------------------------------------------------------------------------
-	@Override
-	public void initialize() {
-		Ensure.notNull(this.props, "CommunicationProperties is null");
-		this.sslTemplate = createTemplate(sslContext);
-		this.initialized = true;
 		
-	}	
-
-	//-------------------------------------------------------------------------------------------------
-	@Override
-	public boolean isInitialized() {
-		return this.initialized;
+		Ensure.notNull(this.props, "CommunicationProperties is null");
+		Ensure.notNull(interfaceProfile, "interfaceProfile is null");
+		Ensure.isTrue(interfaceProfile.getProtocol() == Protocol.HTTP, "Invalid protocol for HttpsClient: " + interfaceProfile.getProtocol().name());
+		Ensure.notEmpty(interfaceProfile.getAddress(), "address is empty");
+		Ensure.portRange(interfaceProfile.getPort());
+		Ensure.isTrue(interfaceProfile.contains(HttpsKey.METHOD), "No http method defined");
+		this.interfaceProfile = interfaceProfile;
+		this.sslTemplate = createTemplate(this.sslContext);
 	}
 	
 	//-------------------------------------------------------------------------------------------------
 	@Override
-	public <T,P> T send(final InterfaceProfile interfaceProfile, final Class<T> responseType, final P payload) throws CommunicationException {
+	public void send(final Object payload) throws CommunicationException {
+		send(null, payload);
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	@Override
+	public void send(final QueryParams params, final Object payload) throws CommunicationException {
+		if (this.response != null) {
+			throw new CommunicationException("Previous response was not read received.");
+		}
+		
 		try {
-			final ResponseEntity<T> responseEntity = sendRequest(interfaceProfile, responseType, payload);
-			return responseEntity.getBody();
+			this.response = sendRequest(interfaceProfile, Object.class, params, payload);			
 				
 		} catch (final DeveloperException ex) {
 			throw ex;
@@ -111,25 +115,31 @@ public class HttpsClient implements CommunicationClient {
 		}
 	}
 	
+	//-------------------------------------------------------------------------------------------------
+	@SuppressWarnings("unchecked")
+	@Override
+	public <T>T receive(final Class<T> type) throws CommunicationException {
+		final Object body = this.response.getBody();
+		this.response = null;
+		if (body == null) {
+			return null;
+		}
+		return (T)body;
+	}
+	
 	//=================================================================================================
 	// assistant methods
 	
 	//-------------------------------------------------------------------------------------------------
-	private <T,P> ResponseEntity<T> sendRequest(final InterfaceProfile interfaceProfile, final Class<T> responseType, final P payload) throws HttpResponseException {
-		Ensure.notNull(interfaceProfile, "interfaceProfile is null");
-		Ensure.isTrue(interfaceProfile.getProtocol() == Protocol.HTTP, "Invalid protocol for HttpsClient: " + interfaceProfile.getProtocol().name());
-		Ensure.notEmpty(interfaceProfile.getAddress(), "address is empty");
-		Ensure.portRange(interfaceProfile.getPort());
-		Ensure.isTrue(interfaceProfile.contains(HttpsKey.METHOD), "No http method defined");
+	private <T,P> ResponseEntity<T> sendRequest(final InterfaceProfile interfaceProfile, final Class<T> responseType, final QueryParams params, final P payload) throws HttpResponseException {
 		Ensure.notNull(responseType, "responseType is null");
-		
+	
 		final HttpMethod method = HttpMethod.valueOf(interfaceProfile.get(ai.aitia.arrowhead.application.common.networking.profile.http.HttpMethod.class, HttpsKey.METHOD).name());
 		if (NOT_SUPPORTED_METHODS.contains(method)) {
 			throw new MethodNotFoundException("Invalid method type was given to the HttpService.sendRequest() method.");
 		}
 		
-		final UriComponents uri = createURI(interfaceProfile.getAddress(), interfaceProfile.getPort(), interfaceProfile.get(QueryParams.class, HttpsKey.QUERY_PARAMS),
-								  interfaceProfile.get(String.class, HttpsKey.PATH));
+		final UriComponents uri = createURI(interfaceProfile.getAddress(), interfaceProfile.getPort(), params, interfaceProfile.get(String.class, HttpsKey.PATH));
 		
 		final HttpEntity<P> entity = getHttpEntity(payload);
 		try {

@@ -1,4 +1,4 @@
-package ai.aitia.arrowhead.application.spring.networking;
+package ai.aitia.arrowhead.application.spring.networking.http;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -22,6 +22,7 @@ import ai.aitia.arrowhead.application.common.networking.CommunicationClient;
 import ai.aitia.arrowhead.application.common.networking.CommunicationProperties;
 import ai.aitia.arrowhead.application.common.networking.Communicator;
 import ai.aitia.arrowhead.application.common.networking.CommunicatorType;
+import ai.aitia.arrowhead.application.common.networking.profile.InterfaceProfile;
 import ai.aitia.arrowhead.application.common.verification.Ensure;
 import ai.aitia.arrowhead.application.spring.util.CertificateUtils;
 
@@ -37,8 +38,6 @@ public class HttpsCommunicator implements Communicator<CommunicationClient> {
 	private int connectionTimeout = 30000;
 	private int socketTimeout = 30000;
 	private int connectionManagerTimeout = 10000;
-	
-	private HttpsClient client;
 
 	//=================================================================================================
 	// methods
@@ -49,22 +48,9 @@ public class HttpsCommunicator implements Communicator<CommunicationClient> {
 	public int getConnectionManagerTimeout() { return connectionManagerTimeout; }	
 	
 	//-------------------------------------------------------------------------------------------------
-	public void setConnectionTimeout(final int connectionTimeout) { 
-		this.connectionTimeout = connectionTimeout;
-		this.client = new HttpsClient(this.clientName, this.props, this.sslContext, this.connectionManagerTimeout, this.connectionManagerTimeout, this.connectionManagerTimeout);
-	}
-	
-	//-------------------------------------------------------------------------------------------------
-	public void setSocketTimeout(final int socketTimeout) { 
-		this.socketTimeout = socketTimeout;
-		this.client = new HttpsClient(this.clientName, this.props, this.sslContext, this.connectionManagerTimeout, this.connectionManagerTimeout, this.connectionManagerTimeout);
-	}
-	
-	//-------------------------------------------------------------------------------------------------
-	public void setConnectionManagerTimeout(final int connectionManagerTimeout) {
-		this.connectionManagerTimeout = connectionManagerTimeout;
-		this.client = new HttpsClient(this.clientName, this.props, this.sslContext, this.connectionManagerTimeout, this.connectionManagerTimeout, this.connectionManagerTimeout);
-	}
+	public void setConnectionTimeout(final int connectionTimeout) { this.connectionTimeout = connectionTimeout; }	
+	public void setSocketTimeout(final int socketTimeout) { this.socketTimeout = socketTimeout; }
+	public void setConnectionManagerTimeout(final int connectionManagerTimeout) { this.connectionManagerTimeout = connectionManagerTimeout; }
 	
 	//-------------------------------------------------------------------------------------------------
 	@Override
@@ -85,7 +71,6 @@ public class HttpsCommunicator implements Communicator<CommunicationClient> {
 		Ensure.notNull(props, "CommunicationProperties is null");
 		try {
 			createSSLContext();
-			this.client = new HttpsClient(this.clientName, this.props, this.sslContext, this.connectionManagerTimeout, this.connectionManagerTimeout, this.connectionManagerTimeout);
 		} catch (final KeyManagementException | UnrecoverableKeyException | KeyStoreException | NoSuchAlgorithmException | CertificateException | IOException ex) {
 			throw new InitializationException(ex.getMessage(), ex);
 		}
@@ -94,16 +79,16 @@ public class HttpsCommunicator implements Communicator<CommunicationClient> {
 	//-------------------------------------------------------------------------------------------------
 	@Override
 	public boolean isInitialized() {
-		return this.client != null;
+		return this.sslContext != null;
 	}
 
 	//-------------------------------------------------------------------------------------------------
 	@Override
-	public CommunicationClient client() {
+	public CommunicationClient client(final InterfaceProfile interfaceProfile) {
 		if (!isInitialized()) {
 			throw new InitializationException("HttpsCommunicator is not initialized");
 		}
-		return this.client();
+		return new HttpsClient(this.clientName, this.props, this.sslContext, this.connectionTimeout, this.socketTimeout, this.connectionManagerTimeout, interfaceProfile);
 	}
 	
 	//=================================================================================================

@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 import ai.aitia.arrowhead.application.common.service.MonitoringService;
 import ai.aitia.arrowhead.application.core.mandatory.systemregistry.SystemRegistryClient;
 import ai.aitia.arrowhead.application.spring.core.CoreClientBean;
-import ai.aitia.arrowhead.application.spring.networking.HttpsCommunicator;
+import ai.aitia.arrowhead.application.spring.networking.http.HttpsCommunicator;
 
 @Component
 public class SystemRegistryHTTPClient implements CoreClientBean {
