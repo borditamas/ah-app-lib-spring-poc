@@ -13,7 +13,6 @@ import javax.net.ssl.SSLContext;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.concurrent.ListenableFuture;
 import org.springframework.web.socket.BinaryMessage;
-import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.WebSocketHttpHeaders;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
@@ -31,6 +30,7 @@ import ai.aitia.arrowhead.application.common.networking.profile.Protocol;
 import ai.aitia.arrowhead.application.common.networking.profile.model.QueryParams;
 import ai.aitia.arrowhead.application.common.networking.profile.websocket.WebsocketKey;
 import ai.aitia.arrowhead.application.common.verification.Ensure;
+import ai.aitia.arrowhead.application.spring.networking.websocket.handler.WebsocketHandler;
 
 public class WebsocketClient implements CommunicationClient {
 	
@@ -47,7 +47,6 @@ public class WebsocketClient implements CommunicationClient {
 	private final InterfaceProfile interfaceProfile;
 	
 	private StandardWebSocketClient wsClient;
-	private WebSocketHandler wsHandler;
 	private WebSocketSession wsSession;
 	
 	private final BlockingQueue<Object> queue = new LinkedBlockingQueue<>();
@@ -71,11 +70,6 @@ public class WebsocketClient implements CommunicationClient {
 	}
 	
 	//-------------------------------------------------------------------------------------------------
-	public void incomingMessage(Object message) {
-		this.queue.add(message);
-	}
-
-	//-------------------------------------------------------------------------------------------------
 	@Override
 	public void send(final Object payload) throws CommunicationException {
 		send(null, payload);		
@@ -96,10 +90,26 @@ public class WebsocketClient implements CommunicationClient {
 	}
 
 	//-------------------------------------------------------------------------------------------------
+	@SuppressWarnings("unchecked")
 	@Override
 	public <T> T receive(final Class<T> type) throws CommunicationException {
-		//TODO
-		return null;
+		try {
+			final Object received = this.queue.take();
+			return (T)received;
+			
+		} catch (final Exception ex) {
+			throw new CommunicationException(ex.getMessage(), ex);
+		}
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	@Override
+	public void disconnect() throws CommunicationException {
+		try {
+			this.wsSession.close();
+		} catch (IOException ex) {
+			throw new CommunicationException(ex.getMessage(), ex);
+		}
 	}
 
 	//=================================================================================================
@@ -114,7 +124,7 @@ public class WebsocketClient implements CommunicationClient {
 			wsClient.getUserProperties().clear();
 			wsClient.getUserProperties().put(TOMCAT_WS_SSL_CONTEXT, sslContext);
 			final UriComponents uri = createURI(interfaceProfile.getAddress(), interfaceProfile.getPort(), params, interfaceProfile.get(String.class, WebsocketKey.PATH));
-			final ListenableFuture<WebSocketSession> handshakeResult = this.wsClient.doHandshake(this.wsHandler, new WebSocketHttpHeaders(), uri.toUri());
+			final ListenableFuture<WebSocketSession> handshakeResult = this.wsClient.doHandshake(new WebsocketHandler(this.queue), new WebSocketHttpHeaders(), uri.toUri());
 			this.wsSession = handshakeResult.get(connectionTimeout, TimeUnit.MILLISECONDS);
 			
 		} else if(params != null) {
@@ -127,7 +137,7 @@ public class WebsocketClient implements CommunicationClient {
 	//-------------------------------------------------------------------------------------------------
 	private UriComponents createURI(final String host, final int port, final QueryParams queryParams, final String path) {
 		final UriComponentsBuilder builder = UriComponentsBuilder.newInstance();
-		builder.scheme(Protocol.HTTP.name())
+		builder.scheme(Protocol.HTTP.name()) //First time it is HTTP than the server will upgrade to WEBSOCKET
 			   .host(host.trim())
 			   .port(port);
 		

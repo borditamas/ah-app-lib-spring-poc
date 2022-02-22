@@ -1,39 +1,37 @@
-package ai.aitia.arrowhead.application.spring.core.websocket;
+package ai.aitia.arrowhead.application.spring.core.client;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import ai.aitia.arrowhead.application.common.networking.profile.CommunicatorProfile;
 import ai.aitia.arrowhead.application.common.service.MonitoringService;
 import ai.aitia.arrowhead.application.core.mandatory.systemregistry.SystemRegistryClient;
 import ai.aitia.arrowhead.application.spring.core.CoreClientBean;
-import ai.aitia.arrowhead.application.spring.core.http.ServiceRegistryHTTPClient;
 
 @Component
-public class SystemRegistryWEBSOCKETClient implements CoreClientBean { // JUST AN EXAMPLE -> Datamanager Core Sys has websocket
+public class SystemRegistryClientBean implements CoreClientBean {
 
 	//=================================================================================================
 	// members
 	
 	private SystemRegistryClient client;
-	private boolean initialized = false;
 	
 	@Autowired
-	private ServiceRegistryHTTPClient serviceRegistry;
+	private ServiceRegistryClientBean serviceRegistry;
 	
 	//=================================================================================================
 	// methods
 	
 	//-------------------------------------------------------------------------------------------------
-	public void initialize() {
-//		this.client = new SystemRegistryClient(new WebsocketCommunicator(), serviceRegistry.getClient());
-//		client.initialize();
-//		this.initialized = true;
+	public void initialize(final CommunicatorProfile communicatorProfile) {
+		this.client = new SystemRegistryClient(communicatorProfile, serviceRegistry.getClient());
+		client.initialize();
 	}
 	
 	//-------------------------------------------------------------------------------------------------
 	@Override
 	public boolean isInitialized() {
-		return this.initialized;
+		return this.client.isInitialized();
 	}
 	
 	//=================================================================================================

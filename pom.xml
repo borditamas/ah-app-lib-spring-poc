@@ -24,6 +24,11 @@
 			<artifactId>arrowhead-application-lib-core-mandatory</artifactId>
 			<version>5.0.0.0</version>
 		</dependency>
+		<dependency>
+			<groupId>ai.aitia</groupId>
+			<artifactId>arrowhead-application-lib-core-support-datamanager</artifactId>
+			<version>5.0.0.0</version>
+		</dependency>
 	
 		<!-- SPRING BOOT -->
 		<dependency>

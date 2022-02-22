@@ -26,7 +26,7 @@ import ai.aitia.arrowhead.application.common.networking.profile.InterfaceProfile
 import ai.aitia.arrowhead.application.common.verification.Ensure;
 import ai.aitia.arrowhead.application.spring.util.CertificateUtils;
 
-public class WebsocketCommunicator implements Communicator<CommunicationClient> {
+public class WebsocketCommunicator implements Communicator {
 	
 	//=================================================================================================
 	// members

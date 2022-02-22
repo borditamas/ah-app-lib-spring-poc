@@ -1,39 +1,35 @@
-package ai.aitia.arrowhead.application.spring.core.http;
+package ai.aitia.arrowhead.application.spring.core.client;
 
 import org.springframework.stereotype.Component;
 
-import ai.aitia.arrowhead.application.common.networking.CommunicationClient;
-import ai.aitia.arrowhead.application.common.networking.Communicator;
+import ai.aitia.arrowhead.application.common.networking.profile.CommunicatorProfile;
 import ai.aitia.arrowhead.application.common.networking.profile.InterfaceProfile;
 import ai.aitia.arrowhead.application.common.service.MonitoringService;
 import ai.aitia.arrowhead.application.core.mandatory.serviceregistry.ServiceRegistryClient;
 import ai.aitia.arrowhead.application.core.mandatory.serviceregistry.service.ServiceDiscoveryService;
 import ai.aitia.arrowhead.application.spring.core.CoreClientBean;
-import ai.aitia.arrowhead.application.spring.networking.http.HttpsCommunicator;
 
 @Component
-public class ServiceRegistryHTTPClient implements CoreClientBean {
+public class ServiceRegistryClientBean implements CoreClientBean {
 
 	//=================================================================================================
 	// members
 	
 	private ServiceRegistryClient client;
-	private boolean initialized = false;
 	
 	//=================================================================================================
 	// methods
 	
 	//-------------------------------------------------------------------------------------------------
-	public void initialize(final InterfaceProfile queryInterfaceProfile) {
-		this.client = new ServiceRegistryClient(new HttpsCommunicator(), queryInterfaceProfile);
+	public void initialize(final CommunicatorProfile communicatorProfile, final InterfaceProfile queryInterfaceProfile) {
+		this.client = new ServiceRegistryClient(communicatorProfile, queryInterfaceProfile);
 		this.client.initialize();
-		this.initialized = true;
 	}
 	
 	//-------------------------------------------------------------------------------------------------
 	@Override
 	public boolean isInitialized() {
-		return this.initialized;
+		return this.client.isInitialized();
 	}
 	
 	//-------------------------------------------------------------------------------------------------

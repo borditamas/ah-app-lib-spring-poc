@@ -97,7 +97,7 @@ public class HttpsClient implements CommunicationClient {
 	@Override
 	public void send(final QueryParams params, final Object payload) throws CommunicationException {
 		if (this.response != null) {
-			throw new CommunicationException("Previous response was not read received.");
+			throw new CommunicationException("Previous response was not read yet.");
 		}
 		
 		try {
@@ -125,6 +125,12 @@ public class HttpsClient implements CommunicationClient {
 			return null;
 		}
 		return (T)body;
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	@Override
+	public void disconnect() throws CommunicationException {
+		//do nothing
 	}
 	
 	//=================================================================================================

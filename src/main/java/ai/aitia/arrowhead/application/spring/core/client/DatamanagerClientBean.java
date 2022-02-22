@@ -1,39 +1,38 @@
-package ai.aitia.arrowhead.application.spring.core.http;
+package ai.aitia.arrowhead.application.spring.core.client;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import ai.aitia.arrowhead.application.common.networking.profile.CommunicatorProfile;
 import ai.aitia.arrowhead.application.common.service.MonitoringService;
-import ai.aitia.arrowhead.application.core.mandatory.systemregistry.SystemRegistryClient;
+import ai.aitia.arrowhead.application.core.support.datamanager.DatamanagerClient;
+import ai.aitia.arrowhead.application.core.support.datamanager.service.HistorianService;
 import ai.aitia.arrowhead.application.spring.core.CoreClientBean;
-import ai.aitia.arrowhead.application.spring.networking.http.HttpsCommunicator;
 
 @Component
-public class SystemRegistryHTTPClient implements CoreClientBean {
+public class DatamanagerClientBean implements CoreClientBean {
 
 	//=================================================================================================
 	// members
 	
-	private SystemRegistryClient client;
-	private boolean initialized = false;
+	private DatamanagerClient client;
 	
 	@Autowired
-	private ServiceRegistryHTTPClient serviceRegistry;
+	private ServiceRegistryClientBean serviceRegistry;
 	
 	//=================================================================================================
 	// methods
 	
 	//-------------------------------------------------------------------------------------------------
-	public void initialize() {
-		this.client = new SystemRegistryClient(new HttpsCommunicator(), serviceRegistry.getClient());
+	public void initialize(final CommunicatorProfile communicatorProfile) {
+		this.client = new DatamanagerClient(communicatorProfile, serviceRegistry.getClient());
 		client.initialize();
-		this.initialized = true;
 	}
-	
+
 	//-------------------------------------------------------------------------------------------------
 	@Override
 	public boolean isInitialized() {
-		return this.initialized;
+		return this.client.isInitialized();
 	}
 	
 	//=================================================================================================
@@ -42,5 +41,10 @@ public class SystemRegistryHTTPClient implements CoreClientBean {
 	//-------------------------------------------------------------------------------------------------
 	public MonitoringService monitoringService() {
 		return this.client.monitoringService();
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	public HistorianService historianService() {
+		return this.client.historianService();
 	}
 }
