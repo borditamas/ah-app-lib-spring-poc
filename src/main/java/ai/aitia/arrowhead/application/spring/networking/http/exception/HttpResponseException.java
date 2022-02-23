@@ -1,4 +1,4 @@
-package ai.aitia.arrowhead.application.spring.networking.exception;
+package ai.aitia.arrowhead.application.spring.networking.http.exception;
 
 import org.springframework.http.HttpStatus;
 

@@ -41,7 +41,7 @@ import ai.aitia.arrowhead.application.common.networking.profile.Protocol;
 import ai.aitia.arrowhead.application.common.networking.profile.http.HttpsKey;
 import ai.aitia.arrowhead.application.common.networking.profile.model.QueryParams;
 import ai.aitia.arrowhead.application.common.verification.Ensure;
-import ai.aitia.arrowhead.application.spring.networking.exception.HttpResponseException;
+import ai.aitia.arrowhead.application.spring.networking.http.exception.HttpResponseException;
 
 public class HttpsClient implements CommunicationClient {
 	
