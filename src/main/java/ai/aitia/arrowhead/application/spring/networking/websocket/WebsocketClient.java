@@ -164,10 +164,7 @@ public class WebsocketClient implements CommunicationClient {
 		}
 		
 		if (queryParams != null && queryParams.getParams().size() != 0) {
-			if (queryParams.getParams().size() % 2 != 0) {
-				//TODO throw new InvalidParameterException("queryParams variable arguments conatins a key without value");
-			}
-			
+			Ensure.isTrue(queryParams.getParams().size() % 2 == 0, "queryParams variable arguments conatins a key without value");			
 			final LinkedMultiValueMap<String,String> query = new LinkedMultiValueMap<>();
 			int count = 1;
 			String key = "";
