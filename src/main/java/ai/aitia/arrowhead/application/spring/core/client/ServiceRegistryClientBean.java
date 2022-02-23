@@ -2,7 +2,7 @@ package ai.aitia.arrowhead.application.spring.core.client;
 
 import org.springframework.stereotype.Component;
 
-import ai.aitia.arrowhead.application.common.networking.profile.CommunicatorProfile;
+import ai.aitia.arrowhead.application.common.networking.profile.CommunicationProfile;
 import ai.aitia.arrowhead.application.common.networking.profile.InterfaceProfile;
 import ai.aitia.arrowhead.application.common.service.MonitoringService;
 import ai.aitia.arrowhead.application.core.mandatory.serviceregistry.ServiceRegistryClient;
@@ -21,7 +21,7 @@ public class ServiceRegistryClientBean implements CoreClientBean {
 	// methods
 	
 	//-------------------------------------------------------------------------------------------------
-	public void initialize(final CommunicatorProfile communicatorProfile, final InterfaceProfile queryInterfaceProfile) {
+	public void initialize(final CommunicationProfile communicatorProfile, final InterfaceProfile queryInterfaceProfile) {
 		this.client = new ServiceRegistryClient(communicatorProfile, queryInterfaceProfile);
 		this.client.initialize();
 	}
@@ -33,7 +33,12 @@ public class ServiceRegistryClientBean implements CoreClientBean {
 	}
 	
 	//-------------------------------------------------------------------------------------------------
-	public ServiceRegistryClient getClient() {
+	@Override
+	public void verifyInitialization() {
+		this.client.verifyInitialization();
+	}
+	
+	/*default*/ ServiceRegistryClient getClient() {
 		return this.client;
 	}
 	
