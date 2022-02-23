@@ -129,7 +129,7 @@ public class HttpsClient implements CommunicationClient {
 	
 	//-------------------------------------------------------------------------------------------------
 	@Override
-	public void disconnect() throws CommunicationException {
+	public void terminate() throws CommunicationException {
 		//do nothing
 	}
 	

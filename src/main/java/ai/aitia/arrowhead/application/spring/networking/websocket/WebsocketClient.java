@@ -104,7 +104,7 @@ public class WebsocketClient implements CommunicationClient {
 	
 	//-------------------------------------------------------------------------------------------------
 	@Override
-	public void disconnect() throws CommunicationException {
+	public void terminate() throws CommunicationException {
 		try {
 			this.wsSession.close();
 		} catch (IOException ex) {
