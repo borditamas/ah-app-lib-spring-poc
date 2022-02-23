@@ -9,40 +9,48 @@ import org.springframework.web.socket.WebSocketSession;
 
 public class WebsocketHandler implements WebSocketHandler {
 	
+	//=================================================================================================
+	// members
+	
 	private final BlockingQueue<Object> queue;
+	private final boolean partialMsgSupport;
 
-	public WebsocketHandler(final BlockingQueue<Object> queue) {
+	//=================================================================================================
+	// methods
+	
+	//-------------------------------------------------------------------------------------------------
+	public WebsocketHandler(final BlockingQueue<Object> queue, final boolean partialMsgSupport) {
 		this.queue = queue;
+		this.partialMsgSupport = partialMsgSupport;
 	}
 
+	//-------------------------------------------------------------------------------------------------
 	@Override
-	public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-		// TODO Auto-generated method stub
-		
+	public void afterConnectionEstablished(final WebSocketSession session) throws Exception {
+		// do nothing		
 	}
 
+	//-------------------------------------------------------------------------------------------------
 	@Override
-	public void handleMessage(WebSocketSession session, WebSocketMessage<?> message) throws Exception {
+	public void handleMessage(final WebSocketSession session, final WebSocketMessage<?> message) throws Exception {
 		this.queue.add(message.getPayload());
 	}
 
+	//-------------------------------------------------------------------------------------------------
 	@Override
-	public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
-		// TODO Auto-generated method stub
-		
+	public void handleTransportError(final WebSocketSession session, final Throwable exception) throws Exception {
+		this.queue.add(exception);		
 	}
 
+	//-------------------------------------------------------------------------------------------------
 	@Override
-	public void afterConnectionClosed(WebSocketSession session, CloseStatus closeStatus) throws Exception {
-		// TODO Auto-generated method stub
-		
+	public void afterConnectionClosed(final WebSocketSession session, final CloseStatus closeStatus) throws Exception {
+		// do nothing
 	}
 
+	//-------------------------------------------------------------------------------------------------
 	@Override
 	public boolean supportsPartialMessages() {
-		// TODO Auto-generated method stub
-		return false;
+		return this.partialMsgSupport;
 	}
-
-
 }

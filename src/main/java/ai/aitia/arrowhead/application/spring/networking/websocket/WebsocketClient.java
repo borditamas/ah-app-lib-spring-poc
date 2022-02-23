@@ -97,13 +97,16 @@ public class WebsocketClient implements CommunicationClient {
 	public <T> T receive(final Class<T> type) throws CommunicationException {
 		try {
 			final Object received = this.queue.take();
+			if (received instanceof Throwable) {
+				throw (Throwable)received;
+			}
 			Ensure.isTrue(type.isAssignableFrom(received.getClass()), "Message cannot be casted to" + type.getSimpleName());
 			return (T)received;
 			
 		} catch (final DeveloperException ex) {
 			throw ex;
 			
-		} catch (final Exception ex) {
+		} catch (final Throwable ex) {
 			throw new CommunicationException(ex.getMessage(), ex);
 		}
 	}
@@ -113,7 +116,7 @@ public class WebsocketClient implements CommunicationClient {
 	public void terminate() throws CommunicationException {
 		try {
 			this.wsSession.close();
-		} catch (IOException ex) {
+		} catch (final IOException ex) {
 			throw new CommunicationException(ex.getMessage(), ex);
 		}
 	}
@@ -128,11 +131,14 @@ public class WebsocketClient implements CommunicationClient {
 		
 		if (this.wsClient == null) {
 			this.wsClient = new StandardWebSocketClient();
-			wsClient.getUserProperties().clear();
-			wsClient.getUserProperties().put(TOMCAT_WS_SSL_CONTEXT, sslContext);
-			final UriComponents uri = createURI(interfaceProfile.getAddress(), interfaceProfile.getPort(), interfaceProfile.get(String.class, WebsocketKey.PATH),
+			this.wsClient.getUserProperties().clear();
+			this.wsClient.getUserProperties().put(TOMCAT_WS_SSL_CONTEXT, sslContext);
+			final UriComponents uri = createURI(this.interfaceProfile.getAddress(), interfaceProfile.getPort(), this.interfaceProfile.get(String.class, WebsocketKey.PATH),
 												props_.get(PathVariables.class, WebsocketKey.PATH_VARIABLES), props_.get(QueryParams.class, WebsocketKey.QUERY_PARAMETERS));
-			final ListenableFuture<WebSocketSession> handshakeResult = this.wsClient.doHandshake(new WebsocketHandler(this.queue), new WebSocketHttpHeaders(), uri.toUri());
+			final ListenableFuture<WebSocketSession> handshakeResult = this.wsClient.doHandshake(new WebsocketHandler(this.queue,
+																													  this.interfaceProfile.getOrDefault(Boolean.class, WebsocketKey.PARTIAL_MSG_SUPPORT, false)),
+																													  new WebSocketHttpHeaders(),
+																													  uri.toUri());
 			this.wsSession = handshakeResult.get(connectionTimeout, TimeUnit.MILLISECONDS);
 		
 		} else if(props_.get(PathVariables.class, WebsocketKey.PATH_VARIABLES) != null) {
@@ -142,7 +148,7 @@ public class WebsocketClient implements CommunicationClient {
 			throw new CommunicationException("Cannot send QueryParams after connection call");
 		}
 		
-		wsSession.sendMessage(new BinaryMessage(this.objectMapper.writeValueAsBytes(payload)));		
+		this.wsSession.sendMessage(new BinaryMessage(this.objectMapper.writeValueAsBytes(payload)));		
 	}
 	
 	//-------------------------------------------------------------------------------------------------
