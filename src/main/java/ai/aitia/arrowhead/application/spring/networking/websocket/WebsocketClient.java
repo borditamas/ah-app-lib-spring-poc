@@ -26,7 +26,9 @@ import ai.aitia.arrowhead.application.common.exception.DeveloperException;
 import ai.aitia.arrowhead.application.common.networking.CommunicationClient;
 import ai.aitia.arrowhead.application.common.networking.CommunicationProperties;
 import ai.aitia.arrowhead.application.common.networking.profile.InterfaceProfile;
+import ai.aitia.arrowhead.application.common.networking.profile.MessageProperties;
 import ai.aitia.arrowhead.application.common.networking.profile.Protocol;
+import ai.aitia.arrowhead.application.common.networking.profile.model.PathVariables;
 import ai.aitia.arrowhead.application.common.networking.profile.model.QueryParams;
 import ai.aitia.arrowhead.application.common.networking.profile.websocket.WebsocketKey;
 import ai.aitia.arrowhead.application.common.verification.Ensure;
@@ -77,9 +79,9 @@ public class WebsocketClient implements CommunicationClient {
 
 	//-------------------------------------------------------------------------------------------------
 	@Override
-	public void send(final QueryParams params, final Object payload) throws CommunicationException {
+	public void send(final MessageProperties props, final Object payload) throws CommunicationException {
 		try {
-			sendMessage(params, payload);
+			sendMessage(props, payload);
 		
 		} catch (final DeveloperException ex) {
 			throw ex;
@@ -95,7 +97,11 @@ public class WebsocketClient implements CommunicationClient {
 	public <T> T receive(final Class<T> type) throws CommunicationException {
 		try {
 			final Object received = this.queue.take();
+			Ensure.isTrue(type.isAssignableFrom(received.getClass()), "Message cannot be casted to" + type.getSimpleName());
 			return (T)received;
+			
+		} catch (final DeveloperException ex) {
+			throw ex;
 			
 		} catch (final Exception ex) {
 			throw new CommunicationException(ex.getMessage(), ex);
@@ -116,18 +122,23 @@ public class WebsocketClient implements CommunicationClient {
 	// assistant methods
 	
 	//-------------------------------------------------------------------------------------------------
-	private void sendMessage(final QueryParams params, final Object payload) throws InterruptedException, ExecutionException, TimeoutException, CommunicationException, IOException {
+	private void sendMessage(final MessageProperties props, final Object payload) throws InterruptedException, ExecutionException, TimeoutException, CommunicationException, IOException {
 		Ensure.notNull(payload, "payload is null");
+		final MessageProperties props_ = props != null ? props : new MessageProperties();
 		
 		if (this.wsClient == null) {
 			this.wsClient = new StandardWebSocketClient();
 			wsClient.getUserProperties().clear();
 			wsClient.getUserProperties().put(TOMCAT_WS_SSL_CONTEXT, sslContext);
-			final UriComponents uri = createURI(interfaceProfile.getAddress(), interfaceProfile.getPort(), params, interfaceProfile.get(String.class, WebsocketKey.PATH));
+			final UriComponents uri = createURI(interfaceProfile.getAddress(), interfaceProfile.getPort(), interfaceProfile.get(String.class, WebsocketKey.PATH),
+												props_.get(PathVariables.class, WebsocketKey.PATH_VARIABLES), props_.get(QueryParams.class, WebsocketKey.QUERY_PARAMETERS));
 			final ListenableFuture<WebSocketSession> handshakeResult = this.wsClient.doHandshake(new WebsocketHandler(this.queue), new WebSocketHttpHeaders(), uri.toUri());
 			this.wsSession = handshakeResult.get(connectionTimeout, TimeUnit.MILLISECONDS);
+		
+		} else if(props_.get(PathVariables.class, WebsocketKey.PATH_VARIABLES) != null) {
+			throw new CommunicationException("Cannot send QueryParams after connection call");
 			
-		} else if(params != null) {
+		} else if(props_.get(QueryParams.class, WebsocketKey.QUERY_PARAMETERS) != null) {
 			throw new CommunicationException("Cannot send QueryParams after connection call");
 		}
 		
@@ -135,7 +146,7 @@ public class WebsocketClient implements CommunicationClient {
 	}
 	
 	//-------------------------------------------------------------------------------------------------
-	private UriComponents createURI(final String host, final int port, final QueryParams queryParams, final String path) {
+	private UriComponents createURI(final String host, final int port, final String path, final PathVariables pathVars, final QueryParams queryParams) {
 		final UriComponentsBuilder builder = UriComponentsBuilder.newInstance();
 		builder.scheme(Protocol.HTTP.name()) //First time it is HTTP than the server will upgrade to WEBSOCKET
 			   .host(host.trim())
@@ -143,6 +154,7 @@ public class WebsocketClient implements CommunicationClient {
 		
 		if (path != null && !path.isBlank()) {
 			builder.path(path);
+			builder.pathSegment(pathVars.getVariables().toArray(new String[pathVars.getVariables().size()]));
 		}
 		
 		if (queryParams != null && queryParams.getParams().size() != 0) {
@@ -150,7 +162,7 @@ public class WebsocketClient implements CommunicationClient {
 				//TODO throw new InvalidParameterException("queryParams variable arguments conatins a key without value");
 			}
 			
-			final LinkedMultiValueMap<String, String> query = new LinkedMultiValueMap<>();
+			final LinkedMultiValueMap<String,String> query = new LinkedMultiValueMap<>();
 			int count = 1;
 			String key = "";
 			for (final String vararg : queryParams.getParams()) {

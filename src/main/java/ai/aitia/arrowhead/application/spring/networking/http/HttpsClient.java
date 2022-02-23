@@ -37,8 +37,10 @@ import ai.aitia.arrowhead.application.common.exception.DeveloperException;
 import ai.aitia.arrowhead.application.common.networking.CommunicationClient;
 import ai.aitia.arrowhead.application.common.networking.CommunicationProperties;
 import ai.aitia.arrowhead.application.common.networking.profile.InterfaceProfile;
+import ai.aitia.arrowhead.application.common.networking.profile.MessageProperties;
 import ai.aitia.arrowhead.application.common.networking.profile.Protocol;
 import ai.aitia.arrowhead.application.common.networking.profile.http.HttpsKey;
+import ai.aitia.arrowhead.application.common.networking.profile.model.PathVariables;
 import ai.aitia.arrowhead.application.common.networking.profile.model.QueryParams;
 import ai.aitia.arrowhead.application.common.verification.Ensure;
 import ai.aitia.arrowhead.application.spring.networking.http.exception.HttpResponseException;
@@ -95,13 +97,13 @@ public class HttpsClient implements CommunicationClient {
 	
 	//-------------------------------------------------------------------------------------------------
 	@Override
-	public void send(final QueryParams params, final Object payload) throws CommunicationException {
+	public void send(final MessageProperties props, final Object payload) throws CommunicationException {
 		if (this.response != null) {
 			throw new CommunicationException("Previous response was not read yet.");
 		}
 		
 		try {
-			this.response = sendRequest(interfaceProfile, Object.class, params, payload);			
+			this.response = sendRequest(props, payload);			
 				
 		} catch (final DeveloperException ex) {
 			throw ex;
@@ -119,11 +121,15 @@ public class HttpsClient implements CommunicationClient {
 	@SuppressWarnings("unchecked")
 	@Override
 	public <T>T receive(final Class<T> type) throws CommunicationException {
+		if (this.response == null) {
+			return null;
+		}
 		final Object body = this.response.getBody();
 		this.response = null;
 		if (body == null) {
 			return null;
 		}
+		Ensure.isTrue(type.isAssignableFrom(body.getClass()), "Response body cannot be casted to" + type.getSimpleName());
 		return (T)body;
 	}
 	
@@ -137,29 +143,28 @@ public class HttpsClient implements CommunicationClient {
 	// assistant methods
 	
 	//-------------------------------------------------------------------------------------------------
-	private <T,P> ResponseEntity<T> sendRequest(final InterfaceProfile interfaceProfile, final Class<T> responseType, final QueryParams params, final P payload) throws HttpResponseException {
-		Ensure.notNull(responseType, "responseType is null");
+	private ResponseEntity<Object> sendRequest(final MessageProperties props, final Object payload) throws HttpResponseException {
+		final MessageProperties props_ = props != null ? props : new MessageProperties();
 	
-		final HttpMethod method = HttpMethod.valueOf(interfaceProfile.get(ai.aitia.arrowhead.application.common.networking.profile.http.HttpMethod.class, HttpsKey.METHOD).name());
+		final HttpMethod method = HttpMethod.valueOf(this.interfaceProfile.get(ai.aitia.arrowhead.application.common.networking.profile.http.HttpMethod.class, HttpsKey.METHOD).name());
 		if (NOT_SUPPORTED_METHODS.contains(method)) {
 			throw new MethodNotFoundException("Invalid method type was given to the HttpService.sendRequest() method.");
 		}
 		
-		final UriComponents uri = createURI(interfaceProfile.getAddress(), interfaceProfile.getPort(), params, interfaceProfile.get(String.class, HttpsKey.PATH));
+		final UriComponents uri = createURI(this.interfaceProfile.getAddress(), this.interfaceProfile.getPort(),this.interfaceProfile.get(String.class, HttpsKey.PATH),
+											props_.get(PathVariables.class, HttpsKey.PATH_VARIABLES), props_.get(QueryParams.class, HttpsKey.QUERY_PARAMETERS));
 		
-		final HttpEntity<P> entity = getHttpEntity(payload);
+		final HttpEntity<Object> entity = getHttpEntity(payload);
 		try {
-			return sslTemplate.exchange(uri.toUri(), method, entity, responseType);
+			return sslTemplate.exchange(uri.toUri(), method, entity, Object.class);
 		} catch (final ResourceAccessException ex) {
 			if (ex.getMessage().contains(ERROR_MESSAGE_PART_PKIX_PATH)) {
-//				logger.error("The system at {} is not part of the same certificate chain of trust!", uri.toUriString());
 				throw new HttpResponseException(HttpStatus.UNAUTHORIZED, "The system at " + uri.toUriString() + " is not part of the same certificate chain of trust!");
+				
 			} else if (ex.getMessage().contains(ERROR_MESSAGE_PART_SUBJECT_ALTERNATIVE_NAMES)) {
-//				logger.error("The certificate of the system at {} does not contain the specified IP address or DNS name as a Subject Alternative Name.", uri.toString());
 				throw new HttpResponseException(HttpStatus.UNAUTHORIZED, "The certificate of the system at " + uri.toString() + " does not contain the specified IP address or DNS name as a Subject Alternative Name.");
+			
 			} else {
-//		        logger.error("UnavailableServerException occurred at {}", uri.toUriString());
-//		        logger.debug("Exception", ex);
 				throw new HttpResponseException(HttpStatus.SERVICE_UNAVAILABLE, "Could not get any response from: " + uri.toUriString(), ex);
 			}
 		}
@@ -218,14 +223,15 @@ public class HttpsClient implements CommunicationClient {
 	}
 	
 	//-------------------------------------------------------------------------------------------------
-	private UriComponents createURI(final String host, final int port, final QueryParams queryParams, final String path) {
+	private UriComponents createURI(final String host, final int port, final String path, final PathVariables pathVars, final QueryParams queryParams) {
 		final UriComponentsBuilder builder = UriComponentsBuilder.newInstance();
-		builder.scheme(Protocol.HTTP.name())
+		builder.scheme(Protocol.HTTP.name()) //First time it is HTTP than the server will upgrade to WEBSOCKET
 			   .host(host.trim())
 			   .port(port);
 		
 		if (path != null && !path.isBlank()) {
 			builder.path(path);
+			builder.pathSegment(pathVars.getVariables().toArray(new String[pathVars.getVariables().size()]));
 		}
 		
 		if (queryParams != null && queryParams.getParams().size() != 0) {
@@ -233,7 +239,7 @@ public class HttpsClient implements CommunicationClient {
 				//TODO throw new InvalidParameterException("queryParams variable arguments conatins a key without value");
 			}
 			
-			final LinkedMultiValueMap<String, String> query = new LinkedMultiValueMap<>();
+			final LinkedMultiValueMap<String,String> query = new LinkedMultiValueMap<>();
 			int count = 1;
 			String key = "";
 			for (final String vararg : queryParams.getParams()) {
@@ -252,7 +258,7 @@ public class HttpsClient implements CommunicationClient {
 	}
 	
 	//-------------------------------------------------------------------------------------------------
-	private <P> HttpEntity<P> getHttpEntity(final P payload) {
+	private HttpEntity<Object> getHttpEntity(final Object payload) {
 		final MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
 		headers.put(HttpHeaders.ACCEPT, Arrays.asList(MediaType.TEXT_PLAIN_VALUE, MediaType.APPLICATION_JSON_VALUE));
 		if (payload != null) {
