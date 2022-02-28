@@ -68,6 +68,9 @@ public class MQTTClient implements CommunicationClient {
 	@Override
 	public <T> T receive(final Class<T> type) throws CommunicationException {
 		subscribeIfNotYet();
+		if (this.subscribeTopic == null) {
+			throw new CommunicationException("No topic is defined to receive messages from");
+		}
 		
 		try {
 			final MqttMessage msg = this.queue.take();
@@ -98,8 +101,10 @@ public class MQTTClient implements CommunicationClient {
 	// assistant methods
 	
 	//-------------------------------------------------------------------------------------------------
-	private void sendMessage(final MessageProperties props, final Object payload) throws JsonProcessingException, MqttPersistenceException, MqttException {
+	private void sendMessage(final MessageProperties props, final Object payload) throws JsonProcessingException, MqttPersistenceException, MqttException, CommunicationException {
 		Ensure.notNull(payload, "payload is null");
+		subscribeIfNotYet();
+		
 		final MessageProperties props_ = props != null ? props : new MessageProperties();
 		if (this.publishTopic == null) {
 			this.publishTopic = this.interfaceProfile.getOrDefault(String.class, MqttKey.TOPIC_PUBLISH, "/");
@@ -113,8 +118,8 @@ public class MQTTClient implements CommunicationClient {
 	
 	//-------------------------------------------------------------------------------------------------
 	private void subscribeIfNotYet() throws CommunicationException {
-		if (this.subscribeTopic == null) {
-			this.subscribeTopic = this.interfaceProfile.getOrDefault(String.class, MqttKey.TOPIC_SUBSCRIBE, "/");
+		if (this.subscribeTopic == null && this.interfaceProfile.contains(MqttKey.TOPIC_SUBSCRIBE)) {
+			this.subscribeTopic = this.interfaceProfile.get(String.class, MqttKey.TOPIC_SUBSCRIBE);
 			try {
 				this.brokerClient.subscribe(this.subscribeTopic, QOS_EXACTLY_ONCE, (topic, msg) -> {
 					if (topic.equals(this.subscribeTopic)) {
