@@ -38,7 +38,7 @@ public class WebsocketCommunicator implements Communicator {
 
 	//=================================================================================================
 	// methods
-	
+
 	//-------------------------------------------------------------------------------------------------
 	@Override
 	public CommunicatorType type() {
@@ -60,8 +60,7 @@ public class WebsocketCommunicator implements Communicator {
 			createSSLContext();
 		} catch (final KeyManagementException | UnrecoverableKeyException | KeyStoreException | NoSuchAlgorithmException | CertificateException | IOException ex) {
 			throw new InitializationException(ex.getMessage(), ex);
-		}
-		
+		}		
 	}
 
 	//-------------------------------------------------------------------------------------------------
@@ -79,6 +78,11 @@ public class WebsocketCommunicator implements Communicator {
 		return new WebsocketClient(this.clientName, this.props, this.sslContext, this.connectionTimeout, interfaceProfile);
 	}
 
+	//-------------------------------------------------------------------------------------------------
+	public void setConnectionTimeout(final int connectionTimeout) {
+		this.connectionTimeout = connectionTimeout;
+	}
+	
 	//=================================================================================================
 	// assistant methods
 	
