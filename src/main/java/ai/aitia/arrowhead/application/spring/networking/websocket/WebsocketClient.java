@@ -31,6 +31,7 @@ import ai.aitia.arrowhead.application.common.networking.profile.Protocol;
 import ai.aitia.arrowhead.application.common.networking.profile.model.PathVariables;
 import ai.aitia.arrowhead.application.common.networking.profile.model.QueryParams;
 import ai.aitia.arrowhead.application.common.networking.profile.websocket.WebsocketKey;
+import ai.aitia.arrowhead.application.common.networking.profile.websocket.WebsocketMsgKey;
 import ai.aitia.arrowhead.application.common.verification.Ensure;
 import ai.aitia.arrowhead.application.spring.networking.websocket.handler.WebsocketHandler;
 
@@ -134,17 +135,17 @@ public class WebsocketClient implements CommunicationClient {
 			this.wsClient.getUserProperties().clear();
 			this.wsClient.getUserProperties().put(TOMCAT_WS_SSL_CONTEXT, sslContext);
 			final UriComponents uri = createURI(this.interfaceProfile.getAddress(), interfaceProfile.getPort(), this.interfaceProfile.get(String.class, WebsocketKey.PATH),
-												props_.get(PathVariables.class, WebsocketKey.PATH_VARIABLES), props_.get(QueryParams.class, WebsocketKey.QUERY_PARAMETERS));
+												props_.get(PathVariables.class, WebsocketMsgKey.PATH_VARIABLES), props_.get(QueryParams.class, WebsocketMsgKey.QUERY_PARAMETERS));
 			final ListenableFuture<WebSocketSession> handshakeResult = this.wsClient.doHandshake(new WebsocketHandler(this.queue,
 																													  this.interfaceProfile.getOrDefault(Boolean.class, WebsocketKey.PARTIAL_MSG_SUPPORT, false)),
 																													  new WebSocketHttpHeaders(),
 																													  uri.toUri());
 			this.wsSession = handshakeResult.get(connectionTimeout, TimeUnit.MILLISECONDS);
 		
-		} else if(props_.get(PathVariables.class, WebsocketKey.PATH_VARIABLES) != null) {
+		} else if(props_.get(PathVariables.class, WebsocketMsgKey.PATH_VARIABLES) != null) {
 			throw new CommunicationException("Cannot send QueryParams after connection call");
 			
-		} else if(props_.get(QueryParams.class, WebsocketKey.QUERY_PARAMETERS) != null) {
+		} else if(props_.get(QueryParams.class, WebsocketMsgKey.QUERY_PARAMETERS) != null) {
 			throw new CommunicationException("Cannot send QueryParams after connection call");
 		}
 		

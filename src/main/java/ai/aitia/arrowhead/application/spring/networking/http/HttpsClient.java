@@ -40,6 +40,7 @@ import ai.aitia.arrowhead.application.common.networking.profile.InterfaceProfile
 import ai.aitia.arrowhead.application.common.networking.profile.MessageProperties;
 import ai.aitia.arrowhead.application.common.networking.profile.Protocol;
 import ai.aitia.arrowhead.application.common.networking.profile.http.HttpsKey;
+import ai.aitia.arrowhead.application.common.networking.profile.http.HttpsMsgKey;
 import ai.aitia.arrowhead.application.common.networking.profile.model.PathVariables;
 import ai.aitia.arrowhead.application.common.networking.profile.model.QueryParams;
 import ai.aitia.arrowhead.application.common.verification.Ensure;
@@ -121,6 +122,9 @@ public class HttpsClient implements CommunicationClient {
 	@SuppressWarnings("unchecked")
 	@Override
 	public <T>T receive(final Class<T> type) throws CommunicationException {
+		if (type == null || type == Void.class) {
+			this.response = null;			
+		}
 		if (this.response == null) {
 			return null;
 		}
@@ -152,7 +156,7 @@ public class HttpsClient implements CommunicationClient {
 		}
 		
 		final UriComponents uri = createURI(this.interfaceProfile.getAddress(), this.interfaceProfile.getPort(),this.interfaceProfile.get(String.class, HttpsKey.PATH),
-											props_.get(PathVariables.class, HttpsKey.PATH_VARIABLES), props_.get(QueryParams.class, HttpsKey.QUERY_PARAMETERS));
+											props_.get(PathVariables.class, HttpsMsgKey.PATH_VARIABLES), props_.get(QueryParams.class, HttpsMsgKey.QUERY_PARAMETERS));
 		
 		final HttpEntity<Object> entity = getHttpEntity(payload);
 		try {
@@ -224,7 +228,7 @@ public class HttpsClient implements CommunicationClient {
 	//-------------------------------------------------------------------------------------------------
 	private UriComponents createURI(final String host, final int port, final String path, final PathVariables pathVars, final QueryParams queryParams) {
 		final UriComponentsBuilder builder = UriComponentsBuilder.newInstance();
-		builder.scheme(Protocol.HTTP.name()) //First time it is HTTP than the server will upgrade to WEBSOCKET
+		builder.scheme(Protocol.HTTP.name())
 			   .host(host.trim())
 			   .port(port);
 		

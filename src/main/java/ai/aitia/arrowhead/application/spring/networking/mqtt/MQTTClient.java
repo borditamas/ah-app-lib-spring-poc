@@ -16,7 +16,9 @@ import ai.aitia.arrowhead.application.common.exception.DeveloperException;
 import ai.aitia.arrowhead.application.common.networking.CommunicationClient;
 import ai.aitia.arrowhead.application.common.networking.profile.InterfaceProfile;
 import ai.aitia.arrowhead.application.common.networking.profile.MessageProperties;
+import ai.aitia.arrowhead.application.common.networking.profile.model.PathVariables;
 import ai.aitia.arrowhead.application.common.networking.profile.mqtt.MqttKey;
+import ai.aitia.arrowhead.application.common.networking.profile.mqtt.MqttMsgKey;
 import ai.aitia.arrowhead.application.common.verification.Ensure;
 
 public class MQTTClient implements CommunicationClient {
@@ -67,9 +69,8 @@ public class MQTTClient implements CommunicationClient {
 	//-------------------------------------------------------------------------------------------------
 	@Override
 	public <T> T receive(final Class<T> type) throws CommunicationException {
-		subscribeIfNotYet();
 		if (this.subscribeTopic == null) {
-			throw new CommunicationException("No topic is defined to receive messages from");
+			throw new CommunicationException("Not subscribed to any topic");
 		}
 		
 		try {
@@ -103,23 +104,27 @@ public class MQTTClient implements CommunicationClient {
 	//-------------------------------------------------------------------------------------------------
 	private void sendMessage(final MessageProperties props, final Object payload) throws JsonProcessingException, MqttPersistenceException, MqttException, CommunicationException {
 		Ensure.notNull(payload, "payload is null");
-		subscribeIfNotYet();
+		subscribeIfNotYet(props);
 		
 		final MessageProperties props_ = props != null ? props : new MessageProperties();
 		if (this.publishTopic == null) {
-			this.publishTopic = this.interfaceProfile.getOrDefault(String.class, MqttKey.TOPIC_PUBLISH, "/");
+			this.publishTopic = createTopicUri(this.interfaceProfile.get(String.class, MqttKey.TOPIC_PUBLISH),
+					 						   props_.get(PathVariables.class, MqttMsgKey.PATH_VARIABLES_PUBLISH));
 		}
 		
 		this.brokerClient.publish(this.publishTopic,
 								  this.objectMapper.writeValueAsBytes(payload),
-								  props_.getOrDefault(Integer.class, MqttKey.QOS, QOS_AT_MOST_ONCE),
-								  props.getOrDefault(Boolean.class, MqttKey.RETAINED, false));
+								  props_.getOrDefault(Integer.class, MqttMsgKey.QOS, QOS_AT_MOST_ONCE),
+								  props_.getOrDefault(Boolean.class, MqttMsgKey.RETAINED, false));
 	}
 	
 	//-------------------------------------------------------------------------------------------------
-	private void subscribeIfNotYet() throws CommunicationException {
+	private void subscribeIfNotYet(final MessageProperties props) throws CommunicationException {
+		final MessageProperties props_ = props != null ? props : new MessageProperties();
 		if (this.subscribeTopic == null && this.interfaceProfile.contains(MqttKey.TOPIC_SUBSCRIBE)) {
-			this.subscribeTopic = this.interfaceProfile.get(String.class, MqttKey.TOPIC_SUBSCRIBE);
+			this.subscribeTopic = createTopicUri(this.interfaceProfile.get(String.class, MqttKey.TOPIC_SUBSCRIBE),
+												 props_.get(PathVariables.class, MqttMsgKey.PATH_VARIABLES_SUBSCRIBE));
+			
 			try {
 				this.brokerClient.subscribe(this.subscribeTopic, QOS_EXACTLY_ONCE, (topic, msg) -> {
 					if (topic.equals(this.subscribeTopic)) {
@@ -131,5 +136,14 @@ public class MQTTClient implements CommunicationClient {
 				throw new CommunicationException(ex.getMessage(), ex);
 			}
 		}
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	private String createTopicUri(final String topic, final PathVariables pathVars) {
+		final StringBuilder sb = new StringBuilder(topic == null || topic.isBlank() ? "" : topic);
+		for (final String var : pathVars.getVariables()) {
+			sb.append("/" + var);
+		}
+		return sb.toString();
 	}
 }
