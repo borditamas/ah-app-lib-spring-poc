@@ -76,7 +76,7 @@ public class MQTTClient implements CommunicationClient {
 		} catch (final DeveloperException ex) {
 			throw ex;
 			
-		} catch (final Throwable ex) {
+		} catch (final Exception ex) {
 			throw new CommunicationException(ex.getMessage(), ex);
 		}
 	}

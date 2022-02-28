@@ -72,7 +72,6 @@ public class MQTTCommunicator implements Communicator {
 			connOpts.setSSLProperties(sslMQTTProperties);
 			connOpts.setCleanSession(true);
 			connOpts.setConnectionTimeout(this.connectionTimeout);
-			//TODO client.setCallback(handler);
 			
 			this.brokerClient.connect(connOpts);
 			
@@ -90,8 +89,7 @@ public class MQTTCommunicator implements Communicator {
 	//-------------------------------------------------------------------------------------------------
 	@Override
 	public CommunicationClient client(final InterfaceProfile interfaceProfile) {
-		// TODO Auto-generated method stub
-		return null;
+		return new MQTTClient(this.brokerClient, interfaceProfile);
 	}
 
 	//-------------------------------------------------------------------------------------------------
