@@ -89,7 +89,7 @@ public class MQTTCommunicator implements Communicator {
 	//-------------------------------------------------------------------------------------------------
 	@Override
 	public CommunicationClient client(final InterfaceProfile interfaceProfile) {
-		return new MQTTClient(this.brokerClient, interfaceProfile);
+		return new MQTTClient(this.brokerClient, connectionTimeout, interfaceProfile);
 	}
 
 	//-------------------------------------------------------------------------------------------------

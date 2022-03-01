@@ -2,6 +2,7 @@ package ai.aitia.arrowhead.application.spring.networking.mqtt;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
@@ -27,10 +28,13 @@ public class MQTTClient implements CommunicationClient {
 	//private static final int QOS_AT_LEAST_ONCE = 1; // message loss is not acceptable and subscriber can handle duplicates
 	private static final int QOS_EXACTLY_ONCE = 2; // message loss is not acceptable and subscriber cannot handle duplicates
 	private final ObjectMapper objectMapper = new ObjectMapper();
-	private String subscribeTopic = null;
+	
 	private String publishTopic = null;
+	private String subscribeTopic = null;
+	private boolean receiveTimeout = false;
 	
 	private final MqttClient brokerClient;
+	private final int connectionTimeout;
 	private final InterfaceProfile interfaceProfile;
 	
 	private final BlockingQueue<MqttMessage> queue = new LinkedBlockingQueue<>();
@@ -39,10 +43,11 @@ public class MQTTClient implements CommunicationClient {
 	// methods
 	
 	//-------------------------------------------------------------------------------------------------
-	public MQTTClient(final MqttClient brokerClient, final InterfaceProfile interfaceProfile) {
+	public MQTTClient(final MqttClient brokerClient, final int connectionTimeout, final InterfaceProfile interfaceProfile) {
 		Ensure.notNull(brokerClient, "brokerClient is null");
 		Ensure.notNull(interfaceProfile, "interfaceProfile is null");
 		this.brokerClient = brokerClient;
+		this.connectionTimeout = connectionTimeout;
 		this.interfaceProfile = interfaceProfile;
 	}
 
@@ -74,7 +79,13 @@ public class MQTTClient implements CommunicationClient {
 		}
 		
 		try {
-			final MqttMessage msg = this.queue.take();
+			final MqttMessage msg;
+			if (receiveTimeout) {
+				msg = this.queue.poll(this.connectionTimeout, TimeUnit.SECONDS);
+			} else {
+				msg = this.queue.take();
+			}
+			
 			return objectMapper.readValue(msg.getPayload(), type);
 			
 		} catch (final DeveloperException ex) {
@@ -136,6 +147,8 @@ public class MQTTClient implements CommunicationClient {
 				throw new CommunicationException(ex.getMessage(), ex);
 			}
 		}
+		
+		this.receiveTimeout = props_.getOrDefault(Boolean.class, MqttMsgKey.RECEIVE_TIMEOUT, false);
 	}
 	
 	//-------------------------------------------------------------------------------------------------

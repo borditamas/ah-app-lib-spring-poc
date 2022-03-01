@@ -57,7 +57,6 @@ public class HttpsCommunicator implements Communicator {
 	public CommunicatorType type() {
 		return CommunicatorType.HTTPS;
 	}
-
 	
 	//-------------------------------------------------------------------------------------------------
 	@Override
