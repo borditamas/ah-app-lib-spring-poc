@@ -120,15 +120,17 @@ public class MQTTClient implements CommunicationClient {
 		subscribeIfNotYet(props);
 		
 		final MessageProperties props_ = props != null ? props : new MessageProperties();
-		if (this.publishTopic == null) {
+		if (this.publishTopic == null && this.interfaceProfile.contains(MqttKey.TOPIC_PUBLISH)) {
 			this.publishTopic = createTopicUri(this.interfaceProfile.get(String.class, MqttKey.TOPIC_PUBLISH),
 					 						   props_.get(PathVariables.class, MqttMsgKey.PATH_VARIABLES_PUBLISH));
 		}
 		
-		this.brokerClient.publish(this.publishTopic,
-								  this.objectMapper.writeValueAsBytes(payload),
-								  props_.getOrDefault(Integer.class, MqttMsgKey.QOS, QOS_AT_MOST_ONCE),
-								  props_.getOrDefault(Boolean.class, MqttMsgKey.RETAINED, false));
+		if (this.publishTopic != null && payload != null) {
+			this.brokerClient.publish(this.publishTopic,
+									  this.objectMapper.writeValueAsBytes(payload),
+									  props_.getOrDefault(Integer.class, MqttMsgKey.QOS, QOS_AT_MOST_ONCE),
+									  props_.getOrDefault(Boolean.class, MqttMsgKey.RETAINED, false));			
+		}
 	}
 	
 	//-------------------------------------------------------------------------------------------------

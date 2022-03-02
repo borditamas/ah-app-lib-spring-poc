@@ -141,7 +141,7 @@ public class HttpsClient implements CommunicationClient {
 	//-------------------------------------------------------------------------------------------------
 	@Override
 	public void terminate() throws CommunicationException {
-		//do nothing
+		//TODO send <Connection: close> header to force to close the socket
 	}
 	
 	//=================================================================================================
