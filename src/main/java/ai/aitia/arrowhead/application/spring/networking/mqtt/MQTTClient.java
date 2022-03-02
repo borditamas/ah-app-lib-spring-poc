@@ -88,7 +88,7 @@ public class MQTTClient implements CommunicationClient {
 				msg = this.queue.take();
 			}
 			
-			payloadResolver.read(msg.getPayload());
+			payloadResolver.read(msg.getPayload(), msg);
 			
 		} catch (final DeveloperException ex) {
 			throw ex;

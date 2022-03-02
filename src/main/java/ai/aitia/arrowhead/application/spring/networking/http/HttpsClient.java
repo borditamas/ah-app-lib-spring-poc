@@ -125,12 +125,17 @@ public class HttpsClient implements CommunicationClient {
 		if (this.response == null) {
 			return;
 		}
-		final Object body = this.response.getBody();
+		ResponseEntity<Object> fullMessage = this.response; 
 		this.response = null;
-		if (body == null || payloadResolver == null) {
+		if (payloadResolver == null) {
 			return;
 		}
-		payloadResolver.read(body);	
+		final Object body = fullMessage.getBody();
+		if (body == null) {
+			payloadResolver.read(fullMessage);
+			return;
+		}
+		payloadResolver.read(body, fullMessage);	
 	}
 	
 	//-------------------------------------------------------------------------------------------------
