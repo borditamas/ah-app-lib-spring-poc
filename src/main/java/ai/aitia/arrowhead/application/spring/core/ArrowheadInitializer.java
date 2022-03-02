@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 import ai.aitia.arrowhead.application.common.networking.profile.CommunicationProfile;
 import ai.aitia.arrowhead.application.common.networking.profile.InterfaceProfile;
 import ai.aitia.arrowhead.application.common.networking.profile.Protocol;
+import ai.aitia.arrowhead.application.common.networking.profile.http.HttpMethod;
 import ai.aitia.arrowhead.application.common.networking.profile.http.HttpsKey;
 import ai.aitia.arrowhead.application.common.service.MonitoringService;
 import ai.aitia.arrowhead.application.common.verification.Ensure;
@@ -64,7 +65,10 @@ public class ArrowheadInitializer {
 		final CommunicationProfile sRCP = new CommunicationProfile();
 		sRCP.put(ServiceDiscoveryService.NAME, httpsCommunicator);
 		sRCP.put(MonitoringService.NAME, httpsCommunicator);
-		final InterfaceProfile srQueryProfile = new InterfaceProfile(Protocol.HTTP, serviceRegistryAddress, serviceRegistryPort);
+		final InterfaceProfile srQueryProfile = new InterfaceProfile(Protocol.HTTP);
+		srQueryProfile.put(HttpsKey.METHOD, HttpMethod.POST);
+		srQueryProfile.put(HttpsKey.ADDRESS, serviceRegistryAddress);
+		srQueryProfile.put(HttpsKey.PORT, serviceRegistryPort);
 		srQueryProfile.put(HttpsKey.PATH, queryPath);
 		serviceRegistry.initialize(sRCP, srQueryProfile);
 		

@@ -28,6 +28,7 @@ import ai.aitia.arrowhead.application.common.networking.CommunicationProperties;
 import ai.aitia.arrowhead.application.common.networking.profile.InterfaceProfile;
 import ai.aitia.arrowhead.application.common.networking.profile.MessageProperties;
 import ai.aitia.arrowhead.application.common.networking.profile.Protocol;
+import ai.aitia.arrowhead.application.common.networking.profile.http.HttpsKey;
 import ai.aitia.arrowhead.application.common.networking.profile.model.PathVariables;
 import ai.aitia.arrowhead.application.common.networking.profile.model.QueryParams;
 import ai.aitia.arrowhead.application.common.networking.profile.websocket.WebsocketKey;
@@ -67,8 +68,8 @@ public class WebsocketClient implements CommunicationClient {
 		Ensure.notNull(this.props, "CommunicationProperties is null");
 		Ensure.notNull(interfaceProfile, "interfaceProfile is null");
 		Ensure.isTrue(interfaceProfile.getProtocol() == Protocol.WEBSOCKET, "Invalid protocol for WebsocketClient: " + interfaceProfile.getProtocol().name());
-		Ensure.notEmpty(interfaceProfile.getAddress(), "address is empty");
-		Ensure.portRange(interfaceProfile.getPort());
+		Ensure.notEmpty(interfaceProfile.get(String.class, HttpsKey.ADDRESS), "address is empty");
+		Ensure.portRange(interfaceProfile.get(Integer.class, HttpsKey.PORT));
 		this.interfaceProfile = interfaceProfile;
 	}
 	
@@ -134,8 +135,10 @@ public class WebsocketClient implements CommunicationClient {
 			this.wsClient = new StandardWebSocketClient();
 			this.wsClient.getUserProperties().clear();
 			this.wsClient.getUserProperties().put(TOMCAT_WS_SSL_CONTEXT, sslContext);
-			final UriComponents uri = createURI(this.interfaceProfile.getAddress(), interfaceProfile.getPort(), this.interfaceProfile.get(String.class, WebsocketKey.PATH),
-												props_.get(PathVariables.class, WebsocketMsgKey.PATH_VARIABLES), props_.get(QueryParams.class, WebsocketMsgKey.QUERY_PARAMETERS));
+			final UriComponents uri = createURI(this.interfaceProfile.get(String.class, HttpsKey.ADDRESS), this.interfaceProfile.get(Integer.class, HttpsKey.PORT),
+												this.interfaceProfile.get(String.class, WebsocketKey.PATH),	props_.get(PathVariables.class, WebsocketMsgKey.PATH_VARIABLES),
+												props_.get(QueryParams.class, WebsocketMsgKey.QUERY_PARAMETERS));
+			
 			final ListenableFuture<WebSocketSession> handshakeResult = this.wsClient.doHandshake(new WebsocketHandler(this.queue,
 																													  this.interfaceProfile.getOrDefault(Boolean.class, WebsocketKey.PARTIAL_MSG_SUPPORT, false)),
 																													  new WebSocketHttpHeaders(),

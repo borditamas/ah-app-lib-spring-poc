@@ -83,8 +83,8 @@ public class HttpsClient implements CommunicationClient {
 		Ensure.notNull(this.props, "CommunicationProperties is null");
 		Ensure.notNull(interfaceProfile, "interfaceProfile is null");
 		Ensure.isTrue(interfaceProfile.getProtocol() == Protocol.HTTP, "Invalid protocol for HttpsClient: " + interfaceProfile.getProtocol().name());
-		Ensure.notEmpty(interfaceProfile.getAddress(), "address is empty");
-		Ensure.portRange(interfaceProfile.getPort());
+		Ensure.notEmpty(interfaceProfile.get(String.class, HttpsKey.ADDRESS), "address is empty");
+		Ensure.portRange(interfaceProfile.get(Integer.class, HttpsKey.PORT));
 		Ensure.isTrue(interfaceProfile.contains(HttpsKey.METHOD), "No http method defined");
 		this.interfaceProfile = interfaceProfile;
 		this.sslTemplate = createTemplate(this.sslContext);
@@ -155,8 +155,9 @@ public class HttpsClient implements CommunicationClient {
 			throw new MethodNotFoundException("Invalid method type was given to the HttpService.sendRequest() method.");
 		}
 		
-		final UriComponents uri = createURI(this.interfaceProfile.getAddress(), this.interfaceProfile.getPort(),this.interfaceProfile.get(String.class, HttpsKey.PATH),
-											props_.get(PathVariables.class, HttpsMsgKey.PATH_VARIABLES), props_.get(QueryParams.class, HttpsMsgKey.QUERY_PARAMETERS));
+		final UriComponents uri = createURI(this.interfaceProfile.get(String.class, HttpsKey.ADDRESS), this.interfaceProfile.get(Integer.class, HttpsKey.PORT),
+											this.interfaceProfile.get(String.class, HttpsKey.PATH), props_.get(PathVariables.class, HttpsMsgKey.PATH_VARIABLES),
+											props_.get(QueryParams.class, HttpsMsgKey.QUERY_PARAMETERS));
 		
 		final HttpEntity<Object> entity = getHttpEntity(payload);
 		try {
