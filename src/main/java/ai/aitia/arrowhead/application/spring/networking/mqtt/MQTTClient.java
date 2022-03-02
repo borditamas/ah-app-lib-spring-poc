@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import ai.aitia.arrowhead.application.common.exception.CommunicationException;
 import ai.aitia.arrowhead.application.common.exception.DeveloperException;
 import ai.aitia.arrowhead.application.common.networking.CommunicationClient;
+import ai.aitia.arrowhead.application.common.networking.PayloadResolver;
 import ai.aitia.arrowhead.application.common.networking.profile.InterfaceProfile;
 import ai.aitia.arrowhead.application.common.networking.profile.MessageProperties;
 import ai.aitia.arrowhead.application.common.networking.profile.model.PathVariables;
@@ -73,10 +74,11 @@ public class MQTTClient implements CommunicationClient {
 
 	//-------------------------------------------------------------------------------------------------
 	@Override
-	public <T> T receive(final Class<T> type) throws CommunicationException {
+	public void receive(final PayloadResolver<?> payloadResolver) throws CommunicationException {
 		if (this.subscribeTopic == null) {
 			throw new CommunicationException("Not subscribed to any topic");
 		}
+		Ensure.notNull(payloadResolver, "PayloadResolver cannot be null in case of MQTT");
 		
 		try {
 			final MqttMessage msg;
@@ -86,14 +88,14 @@ public class MQTTClient implements CommunicationClient {
 				msg = this.queue.take();
 			}
 			
-			return objectMapper.readValue(msg.getPayload(), type);
+			payloadResolver.read(msg.getPayload());
 			
 		} catch (final DeveloperException ex) {
 			throw ex;
 			
 		} catch (final Exception ex) {
 			throw new CommunicationException(ex.getMessage(), ex);
-		}
+		}		
 	}
 
 	//-------------------------------------------------------------------------------------------------

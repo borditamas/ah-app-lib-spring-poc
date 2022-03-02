@@ -36,6 +36,7 @@ import ai.aitia.arrowhead.application.common.exception.CommunicationException;
 import ai.aitia.arrowhead.application.common.exception.DeveloperException;
 import ai.aitia.arrowhead.application.common.networking.CommunicationClient;
 import ai.aitia.arrowhead.application.common.networking.CommunicationProperties;
+import ai.aitia.arrowhead.application.common.networking.PayloadResolver;
 import ai.aitia.arrowhead.application.common.networking.profile.InterfaceProfile;
 import ai.aitia.arrowhead.application.common.networking.profile.MessageProperties;
 import ai.aitia.arrowhead.application.common.networking.profile.Protocol;
@@ -119,22 +120,17 @@ public class HttpsClient implements CommunicationClient {
 	}
 	
 	//-------------------------------------------------------------------------------------------------
-	@SuppressWarnings("unchecked")
 	@Override
-	public <T>T receive(final Class<T> type) throws CommunicationException {
-		if (type == null || type == Void.class) {
-			this.response = null;			
-		}
+	public void receive(final PayloadResolver<?> payloadResolver) throws CommunicationException {
 		if (this.response == null) {
-			return null;
+			return;
 		}
 		final Object body = this.response.getBody();
 		this.response = null;
-		if (body == null) {
-			return null;
+		if (body == null || payloadResolver == null) {
+			return;
 		}
-		Ensure.isTrue(type.isAssignableFrom(body.getClass()), "Response body cannot be casted to" + type.getSimpleName());
-		return (T)body;
+		payloadResolver.read(body);	
 	}
 	
 	//-------------------------------------------------------------------------------------------------

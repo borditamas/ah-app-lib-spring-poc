@@ -25,6 +25,7 @@ import ai.aitia.arrowhead.application.common.exception.CommunicationException;
 import ai.aitia.arrowhead.application.common.exception.DeveloperException;
 import ai.aitia.arrowhead.application.common.networking.CommunicationClient;
 import ai.aitia.arrowhead.application.common.networking.CommunicationProperties;
+import ai.aitia.arrowhead.application.common.networking.PayloadResolver;
 import ai.aitia.arrowhead.application.common.networking.profile.InterfaceProfile;
 import ai.aitia.arrowhead.application.common.networking.profile.MessageProperties;
 import ai.aitia.arrowhead.application.common.networking.profile.Protocol;
@@ -94,23 +95,19 @@ public class WebsocketClient implements CommunicationClient {
 	}
 
 	//-------------------------------------------------------------------------------------------------
-	@SuppressWarnings("unchecked")
-	@Override
-	public <T> T receive(final Class<T> type) throws CommunicationException {
+	public void receive(final PayloadResolver<?> payloadResolver) throws CommunicationException {
+		Ensure.notNull(payloadResolver, "PayloadResolver cannot be null in case of WEBSOCKET");
+		
 		try {
 			final Object received = this.queue.take();
-			if (received instanceof Throwable) {
-				throw (Throwable)received;
-			}
-			Ensure.isTrue(type.isAssignableFrom(received.getClass()), "Message cannot be casted to" + type.getSimpleName());
-			return (T)received;
+			payloadResolver.read(received);
 			
 		} catch (final DeveloperException ex) {
 			throw ex;
 			
 		} catch (final Throwable ex) {
 			throw new CommunicationException(ex.getMessage(), ex);
-		}
+		}		
 	}
 	
 	//-------------------------------------------------------------------------------------------------
