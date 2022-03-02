@@ -14,6 +14,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.concurrent.ListenableFuture;
 import org.springframework.web.socket.BinaryMessage;
 import org.springframework.web.socket.WebSocketHttpHeaders;
+import org.springframework.web.socket.WebSocketMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 import org.springframework.web.util.UriComponents;
@@ -95,12 +96,17 @@ public class WebsocketClient implements CommunicationClient {
 	}
 
 	//-------------------------------------------------------------------------------------------------
+	@SuppressWarnings("unchecked")
 	public void receive(final PayloadResolver<?> payloadResolver) throws CommunicationException {
 		Ensure.notNull(payloadResolver, "PayloadResolver cannot be null in case of WEBSOCKET");
 		
 		try {
 			final Object received = this.queue.take();
-			payloadResolver.read(received);
+			if (received instanceof Throwable) {
+				throw (Throwable)received;
+			}
+			final WebSocketMessage<Object> message = (WebSocketMessage<Object>)received;
+			payloadResolver.read(message.getPayload(), received);
 			
 		} catch (final DeveloperException ex) {
 			throw ex;
