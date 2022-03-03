@@ -25,7 +25,7 @@ public class DatamanagerClientBean implements CoreClientBean {
 	
 	//-------------------------------------------------------------------------------------------------
 	public void initialize(final CommunicationProfile communicatorProfile) {
-		this.client = new DatamanagerClient(communicatorProfile, serviceRegistry.getClient());
+		this.client = new DatamanagerClient(communicatorProfile, serviceRegistry.getClient().serviceDiscoveryService());
 		client.initialize();
 	}
 

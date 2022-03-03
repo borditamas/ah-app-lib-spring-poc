@@ -24,7 +24,7 @@ public class SystemRegistryClientBean implements CoreClientBean {
 	
 	//-------------------------------------------------------------------------------------------------
 	public void initialize(final CommunicationProfile communicatorProfile) {
-		this.client = new SystemRegistryClient(communicatorProfile, serviceRegistry.getClient());
+		this.client = new SystemRegistryClient(communicatorProfile, serviceRegistry.getClient().serviceDiscoveryService());
 		client.initialize();
 	}
 	
