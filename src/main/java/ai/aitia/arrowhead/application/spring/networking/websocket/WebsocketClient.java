@@ -1,6 +1,7 @@
 package ai.aitia.arrowhead.application.spring.networking.websocket;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
@@ -26,7 +27,8 @@ import ai.aitia.arrowhead.application.common.exception.CommunicationException;
 import ai.aitia.arrowhead.application.common.exception.DeveloperException;
 import ai.aitia.arrowhead.application.common.networking.CommunicationClient;
 import ai.aitia.arrowhead.application.common.networking.CommunicationProperties;
-import ai.aitia.arrowhead.application.common.networking.PayloadResolver;
+import ai.aitia.arrowhead.application.common.networking.decoder.PayloadDecoder;
+import ai.aitia.arrowhead.application.common.networking.decoder.PayloadResolver;
 import ai.aitia.arrowhead.application.common.networking.profile.InterfaceProfile;
 import ai.aitia.arrowhead.application.common.networking.profile.MessageProperties;
 import ai.aitia.arrowhead.application.common.networking.profile.Protocol;
@@ -51,23 +53,27 @@ public class WebsocketClient implements CommunicationClient {
 	private final SSLContext sslContext;
 	private final int connectionTimeout;
 	private final InterfaceProfile interfaceProfile;
+	private final PayloadDecoder decoder;
 	
 	private StandardWebSocketClient wsClient;
 	private WebSocketSession wsSession;
 	
-	private final BlockingQueue<Object> queue = new LinkedBlockingQueue<>();
+	private final BlockingQueue<WebSocketMessage<?>> queue = new LinkedBlockingQueue<>();
 
 	//=================================================================================================
 	// methods
 	
 	//-------------------------------------------------------------------------------------------------
-	public WebsocketClient(final String clientName, final CommunicationProperties props, final SSLContext sslContext, final int connectionTimeout, final InterfaceProfile interfaceProfile) {
+	public WebsocketClient(final String clientName, final CommunicationProperties props, final SSLContext sslContext, final int connectionTimeout, final InterfaceProfile interfaceProfile,
+						   final PayloadDecoder payloadDecoder) {
 		this.clientName = clientName;
 		this.props = props;
 		this.sslContext = sslContext;
 		this.connectionTimeout  = connectionTimeout;
+		this.decoder = payloadDecoder;
 		
 		Ensure.notNull(this.props, "CommunicationProperties is null");
+		Ensure.notNull(this.decoder, "PayloadDecoder is null");
 		Ensure.notNull(interfaceProfile, "interfaceProfile is null");
 		Ensure.isTrue(interfaceProfile.getProtocol() == Protocol.WEBSOCKET, "Invalid protocol for WebsocketClient: " + interfaceProfile.getProtocol().name());
 		Ensure.notEmpty(interfaceProfile.get(String.class, HttpsKey.ADDRESS), "address is empty");
@@ -97,16 +103,27 @@ public class WebsocketClient implements CommunicationClient {
 
 	//-------------------------------------------------------------------------------------------------
 	@SuppressWarnings("unchecked")
-	public void receive(final PayloadResolver<?> payloadResolver) throws CommunicationException {
-		Ensure.notNull(payloadResolver, "PayloadResolver cannot be null in case of WEBSOCKET");
+	public void receive(final PayloadResolver payloadResolver) throws CommunicationException {
+		Ensure.notNull(payloadResolver, "PayloadResolver cannot be null");
 		
 		try {
-			final Object received = this.queue.take();
-			if (received instanceof Throwable) {
-				throw (Throwable)received;
+			final WebSocketMessage<?> msg = this.queue.take();
+			if (msg.getPayload() == null) {
+				payloadResolver.add(msg);
+				return;
 			}
-			final WebSocketMessage<Object> message = (WebSocketMessage<Object>)received;
-			payloadResolver.read(message.getPayload(), received);
+			
+			if (msg.getPayload() instanceof ByteBuffer) {
+				final ByteBuffer buffer = (ByteBuffer)msg.getPayload();
+				payloadResolver.add(this.decoder, buffer.array(), msg);
+				
+			} else if (msg.getPayload() instanceof String) {
+				final String payloadStr  = (String)msg.getPayload();
+				payloadResolver.add(this.decoder, payloadStr, msg);
+				
+			} else {
+				throw new CommunicationException("Unkown websocket message payload type");
+			}
 			
 		} catch (final DeveloperException ex) {
 			throw ex;

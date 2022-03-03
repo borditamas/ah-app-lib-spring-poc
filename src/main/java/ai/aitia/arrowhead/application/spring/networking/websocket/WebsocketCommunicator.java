@@ -22,6 +22,7 @@ import ai.aitia.arrowhead.application.common.networking.CommunicationClient;
 import ai.aitia.arrowhead.application.common.networking.CommunicationProperties;
 import ai.aitia.arrowhead.application.common.networking.Communicator;
 import ai.aitia.arrowhead.application.common.networking.CommunicatorType;
+import ai.aitia.arrowhead.application.common.networking.decoder.PayloadDecoder;
 import ai.aitia.arrowhead.application.common.networking.profile.InterfaceProfile;
 import ai.aitia.arrowhead.application.common.verification.Ensure;
 import ai.aitia.arrowhead.application.spring.util.CertificateUtils;
@@ -32,6 +33,8 @@ public class WebsocketCommunicator implements Communicator {
 	// members
 	
 	private CommunicationProperties props;
+	private PayloadDecoder decoder;
+	
 	private String clientName;
 	private SSLContext sslContext;
 	private int connectionTimeout = 30000;
@@ -48,8 +51,14 @@ public class WebsocketCommunicator implements Communicator {
 	//-------------------------------------------------------------------------------------------------
 	@Override
 	public void properties(final CommunicationProperties props) {
-		this.props = props;	
-		
+		this.props = props;		
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	@Override
+	public void decoder(PayloadDecoder decoder) {
+		Ensure.notNull(decoder, "PayloadDecoder is null");
+		this.decoder = decoder;			
 	}
 
 	//-------------------------------------------------------------------------------------------------
@@ -66,7 +75,7 @@ public class WebsocketCommunicator implements Communicator {
 	//-------------------------------------------------------------------------------------------------
 	@Override
 	public boolean isInitialized() {
-		return this.sslContext != null;
+		return this.sslContext != null && this.decoder != null;
 	}
 
 	//-------------------------------------------------------------------------------------------------
@@ -75,7 +84,7 @@ public class WebsocketCommunicator implements Communicator {
 		if (!isInitialized()) {
 			throw new InitializationException("WebsocketCommunicator is not initialized");
 		}
-		return new WebsocketClient(this.clientName, this.props, this.sslContext, this.connectionTimeout, interfaceProfile);
+		return new WebsocketClient(this.clientName, this.props, this.sslContext, this.connectionTimeout, interfaceProfile, this.decoder);
 	}
 
 	//-------------------------------------------------------------------------------------------------

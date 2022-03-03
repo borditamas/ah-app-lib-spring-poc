@@ -36,7 +36,8 @@ import ai.aitia.arrowhead.application.common.exception.CommunicationException;
 import ai.aitia.arrowhead.application.common.exception.DeveloperException;
 import ai.aitia.arrowhead.application.common.networking.CommunicationClient;
 import ai.aitia.arrowhead.application.common.networking.CommunicationProperties;
-import ai.aitia.arrowhead.application.common.networking.PayloadResolver;
+import ai.aitia.arrowhead.application.common.networking.decoder.PayloadDecoder;
+import ai.aitia.arrowhead.application.common.networking.decoder.PayloadResolver;
 import ai.aitia.arrowhead.application.common.networking.profile.InterfaceProfile;
 import ai.aitia.arrowhead.application.common.networking.profile.MessageProperties;
 import ai.aitia.arrowhead.application.common.networking.profile.Protocol;
@@ -59,9 +60,10 @@ public class HttpsClient implements CommunicationClient {
 	private final int socketTimeout;
 	private final int connectionManagerTimeout;
 	private final InterfaceProfile interfaceProfile;
+	private final PayloadDecoder decoder;
 		
 	private final RestTemplate sslTemplate;	
-	private ResponseEntity<Object> response = null;
+	private ResponseEntity<String> response = null;
 	
 	private static final String ERROR_MESSAGE_PART_PKIX_PATH = "PKIX path";
 	private static final String ERROR_MESSAGE_PART_SUBJECT_ALTERNATIVE_NAMES = "doesn't match any of the subject alternative names";	
@@ -73,15 +75,17 @@ public class HttpsClient implements CommunicationClient {
 	//-------------------------------------------------------------------------------------------------
 	
 	public HttpsClient(final String clientName, final CommunicationProperties props, final SSLContext sslContext, final int connectionTimeout,
-					   final int socketTimeout, final int connectionManagerTimeout, final InterfaceProfile interfaceProfile) {
+					   final int socketTimeout, final int connectionManagerTimeout, final InterfaceProfile interfaceProfile, final PayloadDecoder payloadDecoder) {
 		this.clientName = clientName;
 		this.props = props;
 		this.sslContext = sslContext;
 		this.connectionTimeout = connectionTimeout;
 		this.socketTimeout = socketTimeout;
 		this.connectionManagerTimeout = connectionManagerTimeout;
+		this.decoder = payloadDecoder;
 		
 		Ensure.notNull(this.props, "CommunicationProperties is null");
+		Ensure.notNull(this.decoder, "PayloadDecoder is null");
 		Ensure.notNull(interfaceProfile, "interfaceProfile is null");
 		Ensure.isTrue(interfaceProfile.getProtocol() == Protocol.HTTP, "Invalid protocol for HttpsClient: " + interfaceProfile.getProtocol().name());
 		Ensure.notEmpty(interfaceProfile.get(String.class, HttpsKey.ADDRESS), "address is empty");
@@ -121,21 +125,21 @@ public class HttpsClient implements CommunicationClient {
 	
 	//-------------------------------------------------------------------------------------------------
 	@Override
-	public void receive(final PayloadResolver<?> payloadResolver) throws CommunicationException {
+	public void receive(final PayloadResolver payloadResolver) throws CommunicationException {
+		Ensure.notNull(payloadResolver, "PayloadResolver cannot be null");
 		if (this.response == null) {
 			return;
 		}
-		ResponseEntity<Object> fullMessage = this.response; 
+		ResponseEntity<String> fullMessage = this.response; 
 		this.response = null;
-		if (payloadResolver == null) {
-			return;
-		}
-		final Object body = fullMessage.getBody();
+		
+		final String body = fullMessage.getBody();
 		if (body == null) {
-			payloadResolver.read(fullMessage);
+			payloadResolver.add(fullMessage);
 			return;
 		}
-		payloadResolver.read(body, fullMessage);	
+		
+		payloadResolver.add(this.decoder, body, fullMessage);
 	}
 	
 	//-------------------------------------------------------------------------------------------------
@@ -148,7 +152,7 @@ public class HttpsClient implements CommunicationClient {
 	// assistant methods
 	
 	//-------------------------------------------------------------------------------------------------
-	private ResponseEntity<Object> sendRequest(final MessageProperties props, final Object payload) throws HttpResponseException {
+	private ResponseEntity<String> sendRequest(final MessageProperties props, final Object payload) throws HttpResponseException {
 		final MessageProperties props_ = props != null ? props : new MessageProperties();
 	
 		final HttpMethod method = HttpMethod.valueOf(this.interfaceProfile.get(ai.aitia.arrowhead.application.common.networking.profile.http.HttpMethod.class, HttpsKey.METHOD).name());
@@ -162,7 +166,7 @@ public class HttpsClient implements CommunicationClient {
 		
 		final HttpEntity<Object> entity = getHttpEntity(payload);
 		try {
-			return sslTemplate.exchange(uri.toUri(), method, entity, Object.class);
+			return sslTemplate.exchange(uri.toUri(), method, entity, String.class);
 		} catch (final ResourceAccessException ex) {
 			if (ex.getMessage().contains(ERROR_MESSAGE_PART_PKIX_PATH)) {
 				throw new HttpResponseException(HttpStatus.UNAUTHORIZED, "The system at " + uri.toUriString() + " is not part of the same certificate chain of trust!");

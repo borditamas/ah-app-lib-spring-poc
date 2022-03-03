@@ -22,6 +22,7 @@ import ai.aitia.arrowhead.application.common.networking.CommunicationClient;
 import ai.aitia.arrowhead.application.common.networking.CommunicationProperties;
 import ai.aitia.arrowhead.application.common.networking.Communicator;
 import ai.aitia.arrowhead.application.common.networking.CommunicatorType;
+import ai.aitia.arrowhead.application.common.networking.decoder.PayloadDecoder;
 import ai.aitia.arrowhead.application.common.networking.profile.InterfaceProfile;
 import ai.aitia.arrowhead.application.common.verification.Ensure;
 import ai.aitia.arrowhead.application.spring.util.CertificateUtils;
@@ -34,6 +35,7 @@ public class HttpsCommunicator implements Communicator {
 	private CommunicationProperties props;
 	private String clientName;
 	private SSLContext sslContext;
+	private PayloadDecoder decoder;
 	
 	private int connectionTimeout = 30000;
 	private int socketTimeout = 30000;
@@ -61,7 +63,15 @@ public class HttpsCommunicator implements Communicator {
 	//-------------------------------------------------------------------------------------------------
 	@Override
 	public void properties(final CommunicationProperties props) {
+		Ensure.notNull(props, "CommunicationProperties is null");
 		this.props = props;		
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	@Override
+	public void decoder(final PayloadDecoder decoder) {
+		Ensure.notNull(decoder, "PayloadDecoder is null");
+		this.decoder = decoder;		
 	}
 
 	//-------------------------------------------------------------------------------------------------
@@ -78,7 +88,7 @@ public class HttpsCommunicator implements Communicator {
 	//-------------------------------------------------------------------------------------------------
 	@Override
 	public boolean isInitialized() {
-		return this.sslContext != null;
+		return this.sslContext != null && this.decoder != null;
 	}
 
 	//-------------------------------------------------------------------------------------------------
@@ -87,7 +97,7 @@ public class HttpsCommunicator implements Communicator {
 		if (!isInitialized()) {
 			throw new InitializationException("HttpsCommunicator is not initialized");
 		}
-		return new HttpsClient(this.clientName, this.props, this.sslContext, this.connectionTimeout, this.socketTimeout, this.connectionManagerTimeout, interfaceProfile);
+		return new HttpsClient(this.clientName, this.props, this.sslContext, this.connectionTimeout, this.socketTimeout, this.connectionManagerTimeout, interfaceProfile, this.decoder);
 	}
 	
 	//=================================================================================================

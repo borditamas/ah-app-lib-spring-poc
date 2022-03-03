@@ -16,6 +16,7 @@ import ai.aitia.arrowhead.application.spring.core.client.DatamanagerClientBean;
 import ai.aitia.arrowhead.application.spring.core.client.ServiceRegistryClientBean;
 import ai.aitia.arrowhead.application.spring.core.client.SystemRegistryClientBean;
 import ai.aitia.arrowhead.application.spring.networking.http.HttpsCommunicator;
+import ai.aitia.arrowhead.application.spring.networking.http.decoder.JSONDecoder;
 
 @Component
 public class ArrowheadInitializer {
@@ -59,12 +60,15 @@ public class ArrowheadInitializer {
 		Ensure.notEmpty(queryPath, "queryPath is empty");
 		
 		final HttpsCommunicator httpsCommunicator = new HttpsCommunicator();
+		//TODO set CommunicationProps
+		httpsCommunicator.decoder(new JSONDecoder());
 		httpsCommunicator.initialize();
 		
 		// Init Service Registry
 		final CommunicationProfile sRCP = new CommunicationProfile();
 		sRCP.put(ServiceDiscoveryService.NAME, httpsCommunicator);
 		sRCP.put(MonitoringService.NAME, httpsCommunicator);
+		
 		final InterfaceProfile srQueryProfile = new InterfaceProfile(Protocol.HTTP);
 		srQueryProfile.put(HttpsKey.METHOD, HttpMethod.POST);
 		srQueryProfile.put(HttpsKey.ADDRESS, serviceRegistryAddress);

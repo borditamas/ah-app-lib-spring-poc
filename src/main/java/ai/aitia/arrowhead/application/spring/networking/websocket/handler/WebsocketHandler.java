@@ -2,6 +2,7 @@ package ai.aitia.arrowhead.application.spring.networking.websocket.handler;
 
 import java.util.concurrent.BlockingQueue;
 
+import org.springframework.web.socket.BinaryMessage;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.WebSocketMessage;
@@ -12,14 +13,14 @@ public class WebsocketHandler implements WebSocketHandler {
 	//=================================================================================================
 	// members
 	
-	private final BlockingQueue<Object> queue;
+	private final BlockingQueue<WebSocketMessage<?>> queue;
 	private final boolean partialMsgSupport;
 
 	//=================================================================================================
 	// methods
 	
 	//-------------------------------------------------------------------------------------------------
-	public WebsocketHandler(final BlockingQueue<Object> queue, final boolean partialMsgSupport) {
+	public WebsocketHandler(final BlockingQueue<WebSocketMessage<?>> queue, final boolean partialMsgSupport) {
 		this.queue = queue;
 		this.partialMsgSupport = partialMsgSupport;
 	}
@@ -33,13 +34,13 @@ public class WebsocketHandler implements WebSocketHandler {
 	//-------------------------------------------------------------------------------------------------
 	@Override
 	public void handleMessage(final WebSocketSession session, final WebSocketMessage<?> message) throws Exception {
-		this.queue.add(message.getPayload());
+		this.queue.add(message);
 	}
 
 	//-------------------------------------------------------------------------------------------------
 	@Override
 	public void handleTransportError(final WebSocketSession session, final Throwable exception) throws Exception {
-		this.queue.add(exception);		
+		//this.queue.add(exception);		
 	}
 
 	//-------------------------------------------------------------------------------------------------

@@ -11,6 +11,7 @@ import ai.aitia.arrowhead.application.common.networking.CommunicationClient;
 import ai.aitia.arrowhead.application.common.networking.CommunicationProperties;
 import ai.aitia.arrowhead.application.common.networking.Communicator;
 import ai.aitia.arrowhead.application.common.networking.CommunicatorType;
+import ai.aitia.arrowhead.application.common.networking.decoder.PayloadDecoder;
 import ai.aitia.arrowhead.application.common.networking.profile.InterfaceProfile;
 import ai.aitia.arrowhead.application.common.verification.Ensure;
 
@@ -27,6 +28,7 @@ public class MQTTCommunicator implements Communicator {
 	private final String username;
 	private final String password;
 	private MqttClient brokerClient;
+	private PayloadDecoder decoder;
 
 	//=================================================================================================
 	// methods
@@ -51,6 +53,13 @@ public class MQTTCommunicator implements Communicator {
 	public void properties(final CommunicationProperties props) {
 		this.props = props;
 		
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	@Override
+	public void decoder(PayloadDecoder decoder) {
+		Ensure.notNull(decoder, "PayloadDecoder is null");
+		this.decoder = decoder;			
 	}
 
 	//-------------------------------------------------------------------------------------------------
@@ -83,13 +92,13 @@ public class MQTTCommunicator implements Communicator {
 	//-------------------------------------------------------------------------------------------------
 	@Override
 	public boolean isInitialized() {
-		return this.brokerClient != null;
+		return this.brokerClient != null && this.decoder != null;
 	}
 
 	//-------------------------------------------------------------------------------------------------
 	@Override
 	public CommunicationClient client(final InterfaceProfile interfaceProfile) {
-		return new MQTTClient(this.brokerClient, connectionTimeout, interfaceProfile);
+		return new MQTTClient(this.brokerClient, connectionTimeout, interfaceProfile, this.decoder);
 	}
 
 	//-------------------------------------------------------------------------------------------------

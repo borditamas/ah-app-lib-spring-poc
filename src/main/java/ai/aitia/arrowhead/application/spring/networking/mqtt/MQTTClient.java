@@ -15,7 +15,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import ai.aitia.arrowhead.application.common.exception.CommunicationException;
 import ai.aitia.arrowhead.application.common.exception.DeveloperException;
 import ai.aitia.arrowhead.application.common.networking.CommunicationClient;
-import ai.aitia.arrowhead.application.common.networking.PayloadResolver;
+import ai.aitia.arrowhead.application.common.networking.decoder.PayloadDecoder;
+import ai.aitia.arrowhead.application.common.networking.decoder.PayloadResolver;
 import ai.aitia.arrowhead.application.common.networking.profile.InterfaceProfile;
 import ai.aitia.arrowhead.application.common.networking.profile.MessageProperties;
 import ai.aitia.arrowhead.application.common.networking.profile.model.PathVariables;
@@ -24,6 +25,9 @@ import ai.aitia.arrowhead.application.common.networking.profile.mqtt.MqttMsgKey;
 import ai.aitia.arrowhead.application.common.verification.Ensure;
 
 public class MQTTClient implements CommunicationClient {
+	
+	//=================================================================================================
+	// members
 
 	private static final int QOS_AT_MOST_ONCE = 0; // message loss is acceptable and it does not require any kind of acknowledgment or persistence
 	//private static final int QOS_AT_LEAST_ONCE = 1; // message loss is not acceptable and subscriber can handle duplicates
@@ -37,6 +41,7 @@ public class MQTTClient implements CommunicationClient {
 	private final MqttClient brokerClient;
 	private final int connectionTimeout;
 	private final InterfaceProfile interfaceProfile;
+	private final PayloadDecoder decoder;
 	
 	private final BlockingQueue<MqttMessage> queue = new LinkedBlockingQueue<>();
 	
@@ -44,12 +49,15 @@ public class MQTTClient implements CommunicationClient {
 	// methods
 	
 	//-------------------------------------------------------------------------------------------------
-	public MQTTClient(final MqttClient brokerClient, final int connectionTimeout, final InterfaceProfile interfaceProfile) {
+	public MQTTClient(final MqttClient brokerClient, final int connectionTimeout, final InterfaceProfile interfaceProfile, final PayloadDecoder payloadDecoder) {
 		Ensure.notNull(brokerClient, "brokerClient is null");
 		Ensure.notNull(interfaceProfile, "interfaceProfile is null");
+		Ensure.notNull(payloadDecoder, "PayloadDecoder is null");
+		
 		this.brokerClient = brokerClient;
 		this.connectionTimeout = connectionTimeout;
 		this.interfaceProfile = interfaceProfile;
+		this.decoder = payloadDecoder;
 	}
 
 	//-------------------------------------------------------------------------------------------------
@@ -74,11 +82,11 @@ public class MQTTClient implements CommunicationClient {
 
 	//-------------------------------------------------------------------------------------------------
 	@Override
-	public void receive(final PayloadResolver<?> payloadResolver) throws CommunicationException {
+	public void receive(final PayloadResolver payloadResolver) throws CommunicationException {
 		if (this.subscribeTopic == null) {
 			throw new CommunicationException("Not subscribed to any topic");
 		}
-		Ensure.notNull(payloadResolver, "PayloadResolver cannot be null in case of MQTT");
+		Ensure.notNull(payloadResolver, "PayloadResolver cannot be null");
 		
 		try {
 			final MqttMessage msg;
@@ -88,7 +96,12 @@ public class MQTTClient implements CommunicationClient {
 				msg = this.queue.take();
 			}
 			
-			payloadResolver.read(msg.getPayload(), msg);
+			if (msg.getPayload() == null || msg.getPayload().length == 0) {
+				payloadResolver.add(msg);
+				
+			} else {
+				payloadResolver.add(this.decoder, msg.getPayload(), msg);
+			}
 			
 		} catch (final DeveloperException ex) {
 			throw ex;
