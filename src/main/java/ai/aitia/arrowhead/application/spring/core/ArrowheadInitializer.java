@@ -12,6 +12,7 @@ import ai.aitia.arrowhead.application.common.service.MonitoringService;
 import ai.aitia.arrowhead.application.common.verification.Ensure;
 import ai.aitia.arrowhead.application.core.mandatory.serviceregistry.service.ServiceDiscoveryService;
 import ai.aitia.arrowhead.application.core.mandatory.systemregistry.service.SystemDiscoveryService;
+import ai.aitia.arrowhead.application.spring.ApplicationProps;
 import ai.aitia.arrowhead.application.spring.core.client.DatamanagerClientBean;
 import ai.aitia.arrowhead.application.spring.core.client.ServiceRegistryClientBean;
 import ai.aitia.arrowhead.application.spring.core.client.SystemRegistryClientBean;
@@ -23,6 +24,9 @@ public class ArrowheadInitializer {
 
 	//=================================================================================================
 	// members
+	
+	@Autowired
+	private ApplicationProps appProps;
 	
 	@Autowired
 	private ServiceRegistryClientBean serviceRegistry;
@@ -60,7 +64,7 @@ public class ArrowheadInitializer {
 		Ensure.notEmpty(queryPath, "queryPath is empty");
 		
 		final HttpsCommunicator httpsCommunicator = new HttpsCommunicator();
-		//TODO set CommunicationProps
+		httpsCommunicator.properties(appProps.getCommunicationProperties());
 		httpsCommunicator.decoder(new JSONDecoder());
 		httpsCommunicator.initialize();
 		
