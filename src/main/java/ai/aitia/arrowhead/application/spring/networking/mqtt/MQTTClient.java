@@ -154,7 +154,7 @@ public class MQTTClient implements CommunicationClient {
 												 props_.get(PathVariables.class, MqttMsgKey.PATH_VARIABLES_SUBSCRIBE));
 			
 			try {
-				this.brokerClient.subscribe(this.subscribeTopic, QOS_EXACTLY_ONCE, (topic, msg) -> {
+				this.brokerClient.subscribe(this.subscribeTopic, QOS_EXACTLY_ONCE, (topic, msg) -> { // TODO QoS to come from MsgProps
 					if (topic.equals(this.subscribeTopic)) {
 						this.queue.add(msg);
 					}

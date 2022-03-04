@@ -32,6 +32,7 @@ public class DatamanagerClientBean implements CoreClientBean {
 	//-------------------------------------------------------------------------------------------------
 	@Override
 	public boolean isInitialized() {
+		serviceRegistry.getClient().serviceDiscoveryService().verify();
 		return this.client.isInitialized();
 	}
 	

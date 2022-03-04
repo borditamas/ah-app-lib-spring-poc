@@ -1,4 +1,4 @@
-package ai.aitia.arrowhead.application.spring.networking.http.decoder;
+package ai.aitia.arrowhead.application.spring.networking;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 

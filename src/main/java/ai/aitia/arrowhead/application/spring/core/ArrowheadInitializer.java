@@ -16,8 +16,8 @@ import ai.aitia.arrowhead.application.spring.ApplicationProps;
 import ai.aitia.arrowhead.application.spring.core.client.DatamanagerClientBean;
 import ai.aitia.arrowhead.application.spring.core.client.ServiceRegistryClientBean;
 import ai.aitia.arrowhead.application.spring.core.client.SystemRegistryClientBean;
+import ai.aitia.arrowhead.application.spring.networking.JSONDecoder;
 import ai.aitia.arrowhead.application.spring.networking.http.HttpsCommunicator;
-import ai.aitia.arrowhead.application.spring.networking.http.decoder.JSONDecoder;
 
 @Component
 public class ArrowheadInitializer {

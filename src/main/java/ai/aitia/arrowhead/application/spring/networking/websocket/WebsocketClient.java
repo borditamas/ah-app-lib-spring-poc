@@ -166,7 +166,7 @@ public class WebsocketClient implements CommunicationClient {
 			this.wsSession = handshakeResult.get(connectionTimeout, TimeUnit.MILLISECONDS);
 		
 		} else if(props_.get(PathVariables.class, WebsocketMsgKey.PATH_VARIABLES) != null) {
-			throw new CommunicationException("Cannot send QueryParams after connection call");
+			throw new CommunicationException("Cannot send PathVariables after connection call");
 			
 		} else if(props_.get(QueryParams.class, WebsocketMsgKey.QUERY_PARAMETERS) != null) {
 			throw new CommunicationException("Cannot send QueryParams after connection call");
