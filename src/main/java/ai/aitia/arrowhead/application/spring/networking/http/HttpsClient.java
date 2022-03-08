@@ -133,6 +133,15 @@ public class HttpsClient implements CommunicationClient {
 		ResponseEntity<String> fullMessage = this.response; 
 		this.response = null;
 		
+		if (isClientError(fullMessage.getStatusCodeValue())) {
+			payloadResolver.setClientError(true);
+			payloadResolver.setClientErrorMsg("HTTP status code: " + fullMessage.getStatusCodeValue());
+		}
+		
+//		if (header : Transfer-Encoding: chunked) { TODO
+//			payloadResolver.setPartial(true)
+//		}
+		
 		final String body = fullMessage.getBody();
 		if (body == null) {
 			payloadResolver.add(fullMessage);
@@ -273,4 +282,10 @@ public class HttpsClient implements CommunicationClient {
 		
 		return payload != null ? new HttpEntity<>(payload, headers) : new HttpEntity<>(headers);
 	}
+	
+	//-------------------------------------------------------------------------------------------------
+	private boolean isClientError(final int statusCode) {
+		return statusCode < 200 || statusCode > 206;
+	}
+	
 }

@@ -82,7 +82,7 @@ public class MQTTClient implements CommunicationClient {
 
 	//-------------------------------------------------------------------------------------------------
 	@Override
-	public void receive(final PayloadResolver payloadResolver) throws CommunicationException {
+	public void receive(final PayloadResolver payloadResolver) throws CommunicationException { // TODO How to set Client error in PlayoadResolver
 		if (this.subscribeTopic == null) {
 			throw new CommunicationException("Not subscribed to any topic");
 		}

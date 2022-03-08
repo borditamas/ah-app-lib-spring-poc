@@ -103,11 +103,12 @@ public class WebsocketClient implements CommunicationClient {
 
 	//-------------------------------------------------------------------------------------------------
 	@SuppressWarnings("unchecked")
-	public void receive(final PayloadResolver payloadResolver) throws CommunicationException {
+	public void receive(final PayloadResolver payloadResolver) throws CommunicationException { // TODO How to set Client error in PlayoadResolver
 		Ensure.notNull(payloadResolver, "PayloadResolver cannot be null");
 		
 		try {
 			final WebSocketMessage<?> msg = this.queue.take();
+			payloadResolver.setPartial(!msg.isLast());
 			if (msg.getPayload() == null) {
 				payloadResolver.add(msg);
 				return;
